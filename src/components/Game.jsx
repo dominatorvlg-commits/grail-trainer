@@ -134,12 +134,14 @@ export default function Game({ mode, difficulty, initialBoard, isInfiniteTime, o
     if (!isDragging) return;
     const touch = e.touches[0];
     const element = document.elementFromPoint(touch.clientX, touch.clientY);
-    if (element && element.dataset.row) {
-      const r = parseInt(element.dataset.row);
-      const c = parseInt(element.dataset.col);
+    const tile = element ? element.closest('.tile') : null;
+    
+    if (tile && tile.dataset.row) {
+      const r = parseInt(tile.dataset.row);
+      const c = parseInt(tile.dataset.col);
       
       const lastCell = selectedPath[selectedPath.length - 1];
-      if (lastCell.r !== r || lastCell.c !== c) {
+      if (!lastCell || lastCell.r !== r || lastCell.c !== c) {
         handlePointerEnter({ preventDefault: () => {} }, r, c);
       }
     }
@@ -164,7 +166,7 @@ export default function Game({ mode, difficulty, initialBoard, isInfiniteTime, o
   }).join('');
 
   return (
-    <div className="screen" style={{ padding: '0', display: 'flex', flexDirection: 'column' }}>
+    <div className="screen" style={{ padding: '0', display: 'flex', flexDirection: 'column', overflow: 'hidden', touchAction: 'none' }}>
       <div className="header">
         <div className="header-stat">
           <span>СЧЕТ</span>
