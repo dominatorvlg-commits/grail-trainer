@@ -61,21 +61,32 @@ export default function Game({ mode, difficulty, initialBoard, isInfiniteTime, o
     e.preventDefault();
     if (!isDragging) return;
     
-    if (selectedPath.length >= 2) {
-      const prevCell = selectedPath[selectedPath.length - 2];
-      if (prevCell.r === r && prevCell.c === c) {
-        setSelectedPath(prev => prev.slice(0, -1));
-        return;
+    setSelectedPath(prev => {
+      if (prev.length >= 2) {
+        const prevCell = prev[prev.length - 2];
+        if (prevCell.r === r && prevCell.c === c) {
+          return prev.slice(0, -1);
+        }
       }
-    }
 
-    const lastCell = selectedPath[selectedPath.length - 1];
-    const isNeighbor = Math.abs(lastCell.r - r) <= 1 && Math.abs(lastCell.c - c) <= 1;
-    const isNotAlreadySelected = !selectedPath.find(p => p.r === r && p.c === c);
-    
-    if (isNeighbor && isNotAlreadySelected) {
-      setSelectedPath(prev => [...prev, { r, c }]);
-    }
+      if (prev.length === 0) return prev; // Защита (хотя pointerDown добавляет первый элемент)
+      
+      const lastCell = prev[prev.length - 1];
+      
+      // Если мы всё ещё на той же клетке, ничего не делаем
+      if (lastCell.r === r && lastCell.c === c) {
+        return prev;
+      }
+      
+      const isNeighbor = Math.abs(lastCell.r - r) <= 1 && Math.abs(lastCell.c - c) <= 1;
+      const isNotAlreadySelected = !prev.find(p => p.r === r && p.c === c);
+      
+      if (isNeighbor && isNotAlreadySelected) {
+        return [...prev, { r, c }];
+      }
+      
+      return prev;
+    });
   };
 
   const handlePointerUp = (e) => {
