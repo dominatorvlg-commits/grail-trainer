@@ -70,7 +70,6 @@ export default function Game({ mode, difficulty, initialBoard, isInfiniteTime, i
   const handlePointerDown = (e, r, c) => {
     if (countdown > 0) return; // Блокируем игру во время отсчета
     e.preventDefault();
-    e.target.releasePointerCapture(e.pointerId);
     setIsDragging(true);
     setSelectedPath([{ r, c }]);
     initialDragCell.current = { r, c };
