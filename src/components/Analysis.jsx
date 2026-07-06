@@ -123,6 +123,15 @@ export default function Analysis({ initialBoard, initialWords, onExit, workerRef
           setWordIndex(wordIndex + 1);
         }
       }
+    } else if (selectedPath.length === 1) {
+      const { r, c } = selectedPath[0];
+      setBoard(prev => {
+        const newBoard = prev.map(row => [...row]);
+        const cell = { ...newBoard[r][c] };
+        cell.currentLayer = (cell.currentLayer + 1) % LAYERS_COUNT;
+        newBoard[r][c] = cell;
+        return newBoard;
+      });
     }
     
     setSelectedPath([]);
