@@ -17,10 +17,7 @@ const calculatePoints = (wordStr, pathNodes) => {
 };
 
 function findAllWordsWorker(board) {
-  // Предварительно считаем, сколько раз каждая буква вообще может встретиться на поле
   const boardLetterCounts = {};
-  
-  // Быстрый доступ к буквам на поле boardHasChar[r][c][char]
   const boardHasChar = Array(BOARD_SIZE).fill(0).map(() => 
     Array(BOARD_SIZE).fill(0).map(() => ({}))
   );
@@ -55,32 +52,33 @@ function findAllWordsWorker(board) {
     return true;
   };
 
-  const findMaxPointsForWord = (word) => {
+  const findPathForWord = (word) => {
     let maxPoints = -1;
     const visited = Array(BOARD_SIZE).fill(0).map(() => Array(BOARD_SIZE).fill(false));
+    let dfsSteps = 0;
+    const MAX_STEPS = 2000;
 
     const dfs = (r, c, depth, pathNodes) => {
+      if (dfsSteps++ > MAX_STEPS) return false;
+
       if (depth === word.length) {
-        const pts = calculatePoints(word, pathNodes);
-        if (pts > maxPoints) maxPoints = pts;
-        return;
+        maxPoints = calculatePoints(word, pathNodes);
+        return true; // Нашли слово - прекращаем поиск, нам не нужен абсолютный максимум очков для пропущенных
       }
 
       const nextChar = word[depth];
       
-      // Возможные соседи
       for (let dr = -1; dr <= 1; dr++) {
         for (let dc = -1; dc <= 1; dc++) {
           if (dr === 0 && dc === 0) continue;
-          const nr = r + dr;
-          const nc = c + dc;
+          const nr = r + dr, nc = c + dc;
           
           if (nr >= 0 && nr < BOARD_SIZE && nc >= 0 && nc < BOARD_SIZE) {
             if (!visited[nr][nc] && boardHasChar[nr][nc][nextChar]) {
               visited[nr][nc] = true;
               pathNodes.push({ letter: nextChar, multiplier: board[nr][nc].multiplier });
               
-              dfs(nr, nc, depth + 1, pathNodes);
+              if (dfs(nr, nc, depth + 1, pathNodes)) return true;
               
               pathNodes.pop();
               visited[nr][nc] = false;
@@ -88,6 +86,7 @@ function findAllWordsWorker(board) {
           }
         }
       }
+      return false;
     };
 
     const firstChar = word[0];
@@ -95,37 +94,42 @@ function findAllWordsWorker(board) {
       for (let c = 0; c < BOARD_SIZE; c++) {
         if (boardHasChar[r][c][firstChar]) {
           visited[r][c] = true;
-          dfs(r, c, 1, [{ letter: firstChar, multiplier: board[r][c].multiplier }]);
+          if (dfs(r, c, 1, [{ letter: firstChar, multiplier: board[r][c].multiplier }])) {
+            return maxPoints;
+          }
           visited[r][c] = false;
         }
       }
     }
 
-    return maxPoints;
+    return -1;
   };
 
   const validWords = [];
+  
+  // Сортируем словарь от длинных слов к коротким, чтобы находить самые жирные пропущенные
+  const sortedDict = dictionary
+    .map(w => w.toUpperCase())
+    .filter(w => w.length >= 4 && w.length <= 15 && !w.includes('-') && !w.includes(' '))
+    .sort((a, b) => b.length - a.length);
 
-  for (let i = 0; i < dictionary.length; i++) {
-    const word = dictionary[i].toUpperCase();
-    
-    // Согласно правилам, длина слова от 2 до 15 букв
-    if (word.length < 2 || word.length > 15) continue; 
-    
-    // Исключаем слова с дефисами или пробелами
-    if (word.includes('-') || word.includes(' ')) continue;
+  const startTime = Date.now();
+  const TIME_LIMIT = 2000; // 2 секунды максимум
 
+  for (let i = 0; i < sortedDict.length; i++) {
+    if (Date.now() - startTime > TIME_LIMIT) break;
+
+    const word = sortedDict[i];
     if (isTheoreticallyPossible(word)) {
-      const pts = findMaxPointsForWord(word);
+      const pts = findPathForWord(word);
       if (pts > 0) {
         validWords.push({ word, points: pts, length: word.length });
+        if (validWords.length >= 100) break; // Нет смысла искать больше 100 пропущенных
       }
     }
   }
 
-  return validWords
-    .sort((a, b) => b.length - a.length || b.points - a.points)
-    .slice(0, 50);
+  return validWords.sort((a, b) => b.length - a.length || b.points - a.points);
 }
 
 self.onmessage = function(e) {
