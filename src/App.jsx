@@ -63,6 +63,19 @@ function App() {
     return () => workerRef.current.terminate();
   }, []);
 
+  // Отслеживание смены экранов для Яндекс Метрики
+  useEffect(() => {
+    if (typeof window !== 'undefined' && typeof window.ym !== 'undefined') {
+      let pagePath = '/';
+      if (gameState === 'game') pagePath = '/game';
+      if (gameState === 'results') pagePath = '/results';
+      
+      window.ym(110444263, 'hit', pagePath, {
+        title: `Грааль Тренажер - ${gameState}`
+      });
+    }
+  }, [gameState]);
+
   const startGame = (selectedMode, isRetry = false, infinite = false, diff = 'medium', customBoard = null) => {
     if (isRetry) {
       setPreviousResult({ score, foundWords });
