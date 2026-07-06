@@ -76,37 +76,53 @@ export default function Game({ mode, difficulty, initialBoard, isInfiniteTime, i
     initialDragCell.current = { r, c };
   };
 
-  const handlePointerEnter = (e, r, c) => {
+  const handlePointerMove = (e) => {
+    if (!isDragging || countdown > 0) return;
     if (e.isPrimary === false) return;
-    if (countdown > 0) return;
-    e.preventDefault();
-    if (!isDragging) return;
     
-    setSelectedPath(prev => {
-      if (prev.length >= 2) {
-        const prevCell = prev[prev.length - 2];
-        if (prevCell.r === r && prevCell.c === c) {
-          return prev.slice(0, -1);
+    const clientX = e.clientX;
+    const clientY = e.clientY;
+    
+    const element = document.elementFromPoint(clientX, clientY);
+    const tile = element ? element.closest('.tile') : null;
+    
+    if (tile && tile.dataset.row) {
+      const rect = tile.getBoundingClientRect();
+      const centerX = rect.left + rect.width / 2;
+      const centerY = rect.top + rect.height / 2;
+      
+      const distance = Math.hypot(clientX - centerX, clientY - centerY);
+      // Радиус 45% срезает углы плиток, создавая "мертвые зоны" в углах. 
+      // Это полностью исключает случайные зацепы при диагональных свайпах.
+      const maxRadius = Math.min(rect.width, rect.height) * 0.45;
+      
+      if (distance > maxRadius) return;
+      
+      const r = parseInt(tile.dataset.row);
+      const c = parseInt(tile.dataset.col);
+      
+      setSelectedPath(prev => {
+        if (prev.length >= 2) {
+          const prevCell = prev[prev.length - 2];
+          if (prevCell.r === r && prevCell.c === c) {
+            return prev.slice(0, -1);
+          }
         }
-      }
 
-      if (prev.length === 0) return prev;
-      
-      const lastCell = prev[prev.length - 1];
-      
-      if (lastCell.r === r && lastCell.c === c) {
+        if (prev.length === 0) return prev;
+        
+        const lastCell = prev[prev.length - 1];
+        if (lastCell.r === r && lastCell.c === c) return prev;
+        
+        const isNeighbor = Math.abs(lastCell.r - r) <= 1 && Math.abs(lastCell.c - c) <= 1;
+        const isNotAlreadySelected = !prev.find(p => p.r === r && p.c === c);
+        
+        if (isNeighbor && isNotAlreadySelected) {
+          return [...prev, { r, c }];
+        }
         return prev;
-      }
-      
-      const isNeighbor = Math.abs(lastCell.r - r) <= 1 && Math.abs(lastCell.c - c) <= 1;
-      const isNotAlreadySelected = !prev.find(p => p.r === r && p.c === c);
-      
-      if (isNeighbor && isNotAlreadySelected) {
-        return [...prev, { r, c }];
-      }
-      
-      return prev;
-    });
+      });
+    }
   };
 
   const handlePointerUp = (e) => {
@@ -160,23 +176,6 @@ export default function Game({ mode, difficulty, initialBoard, isInfiniteTime, i
       }
     }
     return false;
-  };
-
-  const handleTouchMove = (e) => {
-    if (!isDragging || countdown > 0) return;
-    const touch = e.touches[0];
-    const element = document.elementFromPoint(touch.clientX, touch.clientY);
-    const tile = element ? element.closest('.tile') : null;
-    
-    if (tile && tile.dataset.row) {
-      const r = parseInt(tile.dataset.row);
-      const c = parseInt(tile.dataset.col);
-      
-      const lastCell = selectedPath[selectedPath.length - 1];
-      if (!lastCell || lastCell.r !== r || lastCell.c !== c) {
-        handlePointerEnter({ preventDefault: () => {} }, r, c);
-      }
-    }
   };
 
   useEffect(() => {
@@ -238,7 +237,7 @@ export default function Game({ mode, difficulty, initialBoard, isInfiniteTime, i
         onPointerUp={handlePointerUp} 
         onPointerLeave={handlePointerUp}
         onPointerCancel={handlePointerUp}
-        onTouchMove={handleTouchMove}
+        onPointerMove={handlePointerMove}
       >
         <div className="board" ref={boardRef}>
           {board.map((row, r) => 
@@ -253,7 +252,6 @@ export default function Game({ mode, difficulty, initialBoard, isInfiniteTime, i
                   data-col={c}
                   className={`tile ${tileClass} ${isSelected ? 'selected' : ''}`}
                   onPointerDown={(e) => handlePointerDown(e, r, c)}
-                  onPointerEnter={(e) => handlePointerEnter(e, r, c)}
                 >
                   <span className="letter-text">{cell.layers[cell.currentLayer]}</span>
                 </div>
