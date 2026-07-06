@@ -22,6 +22,58 @@ const COMMON_WORDS_SET = new Set(commonWords);
 export const BOARD_SIZE = 5;
 export const LAYERS_COUNT = 5;
 
+const hasAccidentalLongWords = (board) => {
+  const boardHasChar = Array(BOARD_SIZE).fill(0).map(() => 
+    Array(BOARD_SIZE).fill(0).map(() => ({}))
+  );
+
+  for (let r = 0; r < BOARD_SIZE; r++) {
+    for (let c = 0; c < BOARD_SIZE; c++) {
+      const cellLayers = board[r][c].layers;
+      for (let l = 0; l < cellLayers.length; l++) {
+        const letter = cellLayers[l];
+        if (letter) boardHasChar[r][c][letter] = true;
+      }
+    }
+  }
+
+  const dfs = (r, c, node, visited, depth) => {
+    if (node.isWord && depth >= 14) return true;
+    for (let dr = -1; dr <= 1; dr++) {
+      for (let dc = -1; dc <= 1; dc++) {
+        if (dr === 0 && dc === 0) continue;
+        const nr = r + dr, nc = c + dc;
+        if (nr >= 0 && nr < BOARD_SIZE && nc >= 0 && nc < BOARD_SIZE) {
+          if (!visited[nr][nc]) {
+            for (let nextChar in node) {
+              if (nextChar !== 'isWord' && boardHasChar[nr][nc][nextChar]) {
+                visited[nr][nc] = true;
+                if (dfs(nr, nc, node[nextChar], visited, depth + 1)) return true;
+                visited[nr][nc] = false;
+              }
+            }
+          }
+        }
+      }
+    }
+    return false;
+  };
+
+  const visited = Array(BOARD_SIZE).fill(0).map(() => Array(BOARD_SIZE).fill(false));
+  for (let r = 0; r < BOARD_SIZE; r++) {
+    for (let c = 0; c < BOARD_SIZE; c++) {
+      for (let firstChar in TRIE) {
+        if (firstChar !== 'isWord' && boardHasChar[r][c][firstChar]) {
+          visited[r][c] = true;
+          if (dfs(r, c, TRIE[firstChar], visited, 1)) return true;
+          visited[r][c] = false;
+        }
+      }
+    }
+  }
+  return false;
+};
+
 const LETTER_WEIGHTS = {
   А: 1, Б: 3, В: 1, Г: 3, Д: 2, Е: 1, Ё: 3, Ж: 5, З: 5, И: 1,
   Й: 4, К: 2, Л: 2, М: 2, Н: 1, О: 1, П: 2, Р: 1, С: 1, Т: 1,
@@ -80,7 +132,7 @@ export const generateBoard = (mode, difficulty = 'medium') => {
     bonusWeight = 20; // Очень сильно тянет к бонусам
   } else if (activeDifficulty === 'easy') {
     minLength = 8;
-    maxLength = 15;
+    maxLength = 13;
     wordsCount = 15;
     bonusWeight = 10;
   } else if (activeDifficulty === 'hard') {
@@ -91,13 +143,13 @@ export const generateBoard = (mode, difficulty = 'medium') => {
   } else if (activeDifficulty === 'classic') {
     // Логика до введения сложностей
     minLength = 7;
-    maxLength = 15;
+    maxLength = 13;
     wordsCount = 15;
     bonusWeight = 5;
   } else if (activeDifficulty === 'max') {
     // Максимальное количество длинных слов
     minLength = 10;
-    maxLength = 15;
+    maxLength = 13;
     wordsCount = 25;
     bonusWeight = 20; // Очень сильно притягивается к бонусам
   }
@@ -206,17 +258,46 @@ export const generateBoard = (mode, difficulty = 'medium') => {
 
   targetWords.forEach(word => embedWord(word));
 
-  // Заполняем оставшиеся пустые слоты случайными буквами
-  for (let r = 0; r < BOARD_SIZE; r++) {
-    for (let c = 0; c < BOARD_SIZE; c++) {
-      const cell = board[r][c];
-      for (let l = 0; l < LAYERS_COUNT; l++) {
-        if (cell.layers[l] === null) {
-          cell.layers[l] = getRandomLetter();
+  // Сохраняем "каркас" поля со встроенными словами (остальные слоты null)
+  const baseLayers = Array(BOARD_SIZE).fill(null).map((_, r) => 
+    Array(BOARD_SIZE).fill(null).map((_, c) => [...board[r][c].layers])
+  );
+
+  let isClean = false;
+  let attempts = 0;
+
+  while (!isClean && attempts < 50) {
+    attempts++;
+    
+    // Восстанавливаем каркас перед каждой попыткой случайного заполнения
+    for (let r = 0; r < BOARD_SIZE; r++) {
+      for (let c = 0; c < BOARD_SIZE; c++) {
+        board[r][c].layers = [...baseLayers[r][c]];
+      }
+    }
+
+    // Заполняем оставшиеся пустые слоты случайными буквами
+    for (let r = 0; r < BOARD_SIZE; r++) {
+      for (let c = 0; c < BOARD_SIZE; c++) {
+        const cell = board[r][c];
+        for (let l = 0; l < LAYERS_COUNT; l++) {
+          if (cell.layers[l] === null) {
+            cell.layers[l] = getRandomLetter();
+          }
         }
       }
-      // Перемешиваем слои, чтобы целевые слова не всегда были на слое 0
-      cell.layers.sort(() => Math.random() - 0.5);
+    }
+
+    // Проверяем, не сгенерировались ли случайно слова длиннее 13 букв
+    if (!hasAccidentalLongWords(board)) {
+      isClean = true;
+    }
+  }
+
+  // В самом конце перемешиваем слои, чтобы целевые слова не всегда были на слое 0
+  for (let r = 0; r < BOARD_SIZE; r++) {
+    for (let c = 0; c < BOARD_SIZE; c++) {
+      board[r][c].layers.sort(() => Math.random() - 0.5);
     }
   }
 
