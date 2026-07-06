@@ -63,8 +63,15 @@ export default function Game({ mode, difficulty, initialBoard, isInfiniteTime, i
     }
   }, [isInfiniteTime, countdown]);
 
+  const latestState = useRef({ score, foundWords, board });
+  
+  useEffect(() => {
+    latestState.current = { score, foundWords, board };
+  }, [score, foundWords, board]);
+
   const finishGame = () => {
-    onEnd(score, foundWords, board);
+    const state = latestState.current;
+    onEnd(state.score, state.foundWords, state.board);
   };
 
   const handlePointerDown = (e, r, c) => {
