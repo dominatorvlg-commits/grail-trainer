@@ -43,7 +43,7 @@ export default function Menu({ onStart, theme, onToggleTheme }) {
         <h1 style={{ marginBottom: '0', textAlign: 'left' }}>Грааль Тренажер</h1>
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
           <span style={{ fontSize: '18px' }}>{theme === 'light' ? '☀️' : '🌙'}</span>
-          <label className="switch" style={{ width: '36px', height: '20px' }}>
+          <label className="switch">
             <input 
               type="checkbox" 
               checked={theme === 'dark'} 
