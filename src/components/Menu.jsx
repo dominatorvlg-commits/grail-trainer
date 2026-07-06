@@ -13,6 +13,29 @@ const DIFF_HINTS = {
 export default function Menu({ onStart, theme, onToggleTheme }) {
   const [isInfinite, setIsInfinite] = useState(false);
   const [difficulty, setDifficulty] = useState('medium');
+  const [showCodeInput, setShowCodeInput] = useState(false);
+  const [boardCode, setBoardCode] = useState('');
+
+  const handlePlayCode = () => {
+    let code = boardCode.trim();
+    if (!code) return;
+    
+    try {
+      if (code.includes('?board=')) {
+        const url = new URL(code.startsWith('http') ? code : 'https://dummy.com/' + code);
+        code = url.searchParams.get('board') || code;
+      }
+    } catch(e) {}
+
+    import('../utils/gameLogic').then(({ deserializeBoard }) => {
+      const board = deserializeBoard(code);
+      if (board) {
+        onStart('duel', false, false, 'medium', board);
+      } else {
+        alert('Неверный код поля или ссылка!');
+      }
+    });
+  };
 
   return (
     <div className="screen">
@@ -98,6 +121,33 @@ export default function Menu({ onStart, theme, onToggleTheme }) {
         >
           Случайный режим
         </button>
+
+        {showCodeInput ? (
+          <div style={{ display: 'flex', gap: '8px', marginTop: '10px' }}>
+            <input 
+              type="text" 
+              value={boardCode}
+              onChange={(e) => setBoardCode(e.target.value)}
+              placeholder="Вставьте ссылку или код"
+              style={{ 
+                flex: 1, padding: '12px', borderRadius: '8px', 
+                border: '1px solid var(--glass-border)', background: 'var(--glass-bg)', 
+                color: 'var(--text-main)', fontSize: '14px', outline: 'none'
+              }}
+            />
+            <button className="btn green" style={{ width: 'auto', padding: '12px 20px' }} onClick={handlePlayCode}>
+              Старт
+            </button>
+          </div>
+        ) : (
+          <button 
+            className="btn" 
+            style={{ marginTop: '10px', background: 'rgba(255,255,255,0.1)', border: '1px dashed var(--glass-border)' }} 
+            onClick={() => setShowCodeInput(true)}
+          >
+            Ввести номер поля (Дуэль)
+          </button>
+        )}
       </div>
     </div>
   );

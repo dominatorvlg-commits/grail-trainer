@@ -212,3 +212,47 @@ export const calculatePoints = (wordStr, pathNodes) => {
   
   return points * wordMultiplier;
 };
+
+// Сериализация: 5 * 5 * 5 = 125 букв. + 25 множителей.
+// Алфавит: 32 буквы.
+export const serializeBoard = (board) => {
+  const letters = "АБВГДЕЖЗИЙКЛМНОПРСТУФХЦЧШЩЪЫЬЭЮЯ";
+  const multiMap = { 'w1': '0', 'wx2': '1', 'wx3': '2', 'w2': '3', 'w3': '4' };
+  let str = '';
+  for(let r=0; r<BOARD_SIZE; r++){
+    for(let c=0; c<BOARD_SIZE; c++){
+      const cell = board[r][c];
+      for(let l=0; l<LAYERS_COUNT; l++){
+        let idx = letters.indexOf(cell.layers[l]);
+        if(idx === -1) idx = 0; // fallback для непредвиденных символов
+        str += idx.toString(32);
+      }
+      str += multiMap[cell.multiplier] || '0';
+    }
+  }
+  return str;
+};
+
+export const deserializeBoard = (str) => {
+  if (!str || str.length !== 150) return null;
+  const letters = "АБВГДЕЖЗИЙКЛМНОПРСТУФХЦЧШЩЪЫЬЭЮЯ";
+  const reverseMulti = { '0': 'w1', '1': 'wx2', '2': 'wx3', '3': 'w2', '4': 'w3' };
+  
+  const board = [];
+  let ptr = 0;
+  for(let r=0; r<BOARD_SIZE; r++){
+    let row = [];
+    for(let c=0; c<BOARD_SIZE; c++){
+      const layers = [];
+      for(let l=0; l<LAYERS_COUNT; l++){
+        const char = str[ptr++];
+        const idx = parseInt(char, 32);
+        layers.push(letters[idx]);
+      }
+      const multi = reverseMulti[str[ptr++]] || 'w1';
+      row.push({ layers, currentLayer: 0, multiplier: multi });
+    }
+    board.push(row);
+  }
+  return board;
+};

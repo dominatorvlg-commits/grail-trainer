@@ -3,6 +3,7 @@ import './index.css';
 import Menu from './components/Menu';
 import Game from './components/Game';
 import Results from './components/Results';
+import { deserializeBoard, serializeBoard } from './utils/gameLogic';
 
 function App() {
   const [gameState, setGameState] = useState('menu'); // 'menu', 'game', 'results'
@@ -16,6 +17,7 @@ function App() {
   const [isInfiniteTime, setIsInfiniteTime] = useState(false);
   const [difficulty, setDifficulty] = useState('medium');
   const [theme, setTheme] = useState('dark');
+  const [isDuel, setIsDuel] = useState(false);
 
   const workerRef = useRef(null);
 
@@ -28,19 +30,46 @@ function App() {
         setIsAnalyzing(false);
       }
     };
+
+    // Парсинг URL
+    const params = new URLSearchParams(window.location.search);
+    const boardCode = params.get('board');
+    if (boardCode) {
+      const decoded = deserializeBoard(boardCode);
+      if (decoded) {
+        setBoardState(decoded);
+        setIsInfiniteTime(false); // Дуэли всегда на время (5 минут)
+        setMode('duel');
+        setIsDuel(true);
+        setGameState('game');
+        
+        // Очищаем URL, чтобы при обновлении не стартовать заново
+        window.history.replaceState({}, document.title, window.location.pathname);
+      }
+    }
+
     return () => workerRef.current.terminate();
   }, []);
 
-  const startGame = (selectedMode, isRetry = false, infinite = false, diff = 'medium') => {
+  const startGame = (selectedMode, isRetry = false, infinite = false, diff = 'medium', customBoard = null) => {
     if (isRetry) {
       setPreviousResult({ score, foundWords });
       // При повторе мы не сбрасываем allWords и boardState!
     } else {
       setPreviousResult(null);
-      setBoardState(null);
       setAllWords([]);
-      setIsInfiniteTime(infinite); // Обновляем только при новой игре
+      setIsInfiniteTime(infinite);
       setDifficulty(diff);
+      
+      if (customBoard) {
+        setBoardState(customBoard);
+        setIsDuel(true);
+        selectedMode = 'duel';
+        setIsInfiniteTime(false);
+      } else {
+        setBoardState(null);
+        setIsDuel(false);
+      }
     }
     setMode(selectedMode);
     setScore(0);
@@ -74,7 +103,7 @@ function App() {
   return (
     <div className="app-container" data-theme={theme}>
       {gameState === 'menu' && <Menu onStart={startGame} theme={theme} onToggleTheme={toggleTheme} />}
-      {gameState === 'game' && <Game mode={mode} difficulty={difficulty} initialBoard={boardState} isInfiniteTime={isInfiniteTime} onEnd={endGame} />}
+      {gameState === 'game' && <Game mode={mode} difficulty={difficulty} initialBoard={boardState} isInfiniteTime={isInfiniteTime} isDuel={isDuel} onEnd={endGame} />}
       {gameState === 'results' && 
         <Results 
           score={score} 
@@ -82,6 +111,8 @@ function App() {
           allWords={allWords} 
           isAnalyzing={isAnalyzing}
           previousResult={previousResult}
+          isDuel={isDuel}
+          boardState={boardState}
           onRetry={() => startGame(mode, true)}
           onMenu={goMenu}
         />

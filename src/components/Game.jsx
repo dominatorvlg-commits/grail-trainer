@@ -2,24 +2,25 @@ import React, { useState, useEffect, useRef } from 'react';
 import { generateBoard, isValidWord, calculatePoints, BOARD_SIZE, LAYERS_COUNT } from '../utils/gameLogic';
 import { COMBINATIONS } from '../data/combinations';
 
-export default function Game({ mode, difficulty, initialBoard, isInfiniteTime, onEnd }) {
+export default function Game({ mode, difficulty, initialBoard, isInfiniteTime, isDuel, onEnd }) {
   const [board, setBoard] = useState([]);
   const [timeLeft, setTimeLeft] = useState(300); // 5 минут
   const [score, setScore] = useState(0);
   const [foundWords, setFoundWords] = useState([]);
+  
+  // Отсчет перед игрой для дуэлей
+  const [countdown, setCountdown] = useState(isDuel ? 3 : 0);
+  const [countdownText, setCountdownText] = useState(isDuel ? '3' : '');
   
   // Состояния для выделения
   const [isDragging, setIsDragging] = useState(false);
   const [selectedPath, setSelectedPath] = useState([]); // [{r, c}]
   const boardRef = useRef(null);
   
-  // Для определения тапа (смены слоя) vs свайпа (выделения)
-  const dragStartTime = useRef(0);
   const initialDragCell = useRef(null);
 
   useEffect(() => {
     if (initialBoard) {
-      // Клонируем доску и сбрасываем currentLayer на 0
       const restoredBoard = initialBoard.map(row => 
         row.map(cell => ({ ...cell, currentLayer: 0 }))
       );
@@ -27,8 +28,27 @@ export default function Game({ mode, difficulty, initialBoard, isInfiniteTime, o
     } else {
       setBoard(generateBoard(mode, difficulty));
     }
-    
-    if (!isInfiniteTime) {
+  }, [mode, difficulty, initialBoard]);
+
+  useEffect(() => {
+    // Отсчет перед началом (3.. 2.. 1..)
+    if (countdown > 0) {
+      const cdTimer = setInterval(() => {
+        setCountdown(prev => {
+          if (prev <= 1) {
+            setCountdownText('ПОЕХАЛИ!');
+            setTimeout(() => setCountdownText(''), 1000);
+            return 0;
+          }
+          setCountdownText(String(prev - 1));
+          return prev - 1;
+        });
+      }, 1000);
+      return () => clearInterval(cdTimer);
+    }
+
+    // Игровой таймер
+    if (!isInfiniteTime && countdown === 0) {
       const timer = setInterval(() => {
         setTimeLeft(prev => {
           if (prev <= 1) {
@@ -41,23 +61,23 @@ export default function Game({ mode, difficulty, initialBoard, isInfiniteTime, o
       }, 1000);
       return () => clearInterval(timer);
     }
-  }, [mode, initialBoard, isInfiniteTime]);
+  }, [isInfiniteTime, countdown]);
 
   const finishGame = () => {
-    // Передаем board в onEnd для асинхронного поиска слов через Web Worker
     onEnd(score, foundWords, board);
   };
 
   const handlePointerDown = (e, r, c) => {
-    e.preventDefault(); // Блокируем стандартное поведение браузера (в т.ч. зум)
+    if (countdown > 0) return; // Блокируем игру во время отсчета
+    e.preventDefault();
     e.target.releasePointerCapture(e.pointerId);
     setIsDragging(true);
     setSelectedPath([{ r, c }]);
-    dragStartTime.current = Date.now();
     initialDragCell.current = { r, c };
   };
 
   const handlePointerEnter = (e, r, c) => {
+    if (countdown > 0) return;
     e.preventDefault();
     if (!isDragging) return;
     
@@ -69,11 +89,10 @@ export default function Game({ mode, difficulty, initialBoard, isInfiniteTime, o
         }
       }
 
-      if (prev.length === 0) return prev; // Защита (хотя pointerDown добавляет первый элемент)
+      if (prev.length === 0) return prev;
       
       const lastCell = prev[prev.length - 1];
       
-      // Если мы всё ещё на той же клетке, ничего не делаем
       if (lastCell.r === r && lastCell.c === c) {
         return prev;
       }
@@ -140,9 +159,7 @@ export default function Game({ mode, difficulty, initialBoard, isInfiniteTime, o
   };
 
   const handleTouchMove = (e) => {
-    // В React touchMove пассивный, но мы не делаем preventDefault,
-    // так как CSS touch-action: none уже блокирует скролл.
-    if (!isDragging) return;
+    if (!isDragging || countdown > 0) return;
     const touch = e.touches[0];
     const element = document.elementFromPoint(touch.clientX, touch.clientY);
     const tile = element ? element.closest('.tile') : null;
@@ -158,23 +175,24 @@ export default function Game({ mode, difficulty, initialBoard, isInfiniteTime, o
     }
   };
 
-  // Блокируем контекстное меню, чтобы при долгом нажатии ничего не вылезало
   useEffect(() => {
     const handleContextMenu = (e) => e.preventDefault();
     document.addEventListener('contextmenu', handleContextMenu);
     return () => document.removeEventListener('contextmenu', handleContextMenu);
   }, []);
 
-  const formatTime = (sec) => {
-    const m = Math.floor(sec / 60);
-    const s = sec % 60;
-    return `${m}:${s < 10 ? '0' : ''}${s}`;
-  };
-
   const currentWordStr = selectedPath.map(p => {
     const cell = board[p.r]?.[p.c];
     return cell ? cell.layers[cell.currentLayer] : '';
   }).join('');
+
+  const getModeName = () => {
+    if (isDuel) return 'Дуэль на одинаковом поле';
+    if (mode === 'mixed') return 'Смешанный режим';
+    if (mode === 'random') return 'Случайный режим';
+    if (COMBINATIONS[mode]) return COMBINATIONS[mode].name;
+    return mode;
+  };
 
   return (
     <div className="screen" style={{ padding: '0', display: 'flex', flexDirection: 'column', overflow: 'hidden', touchAction: 'none' }}>
@@ -203,8 +221,12 @@ export default function Game({ mode, difficulty, initialBoard, isInfiniteTime, o
         </div>
       </div>
 
-      <div className="current-word-container">
-        {currentWordStr || mode}
+      <div style={{ textAlign: 'center', fontSize: '11px', color: 'var(--text-muted)', marginBottom: '-10px', marginTop: '15px', textTransform: 'uppercase', letterSpacing: '1px', fontWeight: 'bold' }}>
+        {getModeName()}
+      </div>
+
+      <div className="current-word-container" style={{ marginTop: '15px' }}>
+        {currentWordStr}
       </div>
 
       <div 
@@ -235,7 +257,6 @@ export default function Game({ mode, difficulty, initialBoard, isInfiniteTime, o
             })
           )}
           
-          {/* Слой с линиями выделения */}
           <svg className="svg-lines" viewBox="0 0 100 100" preserveAspectRatio="none">
             {selectedPath.length > 1 && (
               <path d={
@@ -244,6 +265,32 @@ export default function Game({ mode, difficulty, initialBoard, isInfiniteTime, o
                   const y = (p.r * 20 + 10);
                   return `${i === 0 ? 'M' : 'L'} ${x} ${y}`;
                 }).join(' ')
+              } />
+            )}
+          </svg>
+
+          {countdownText && (
+            <div style={{
+              position: 'absolute', top: 0, left: 0, width: '100%', height: '100%',
+              display: 'flex', justifyContent: 'center', alignItems: 'center',
+              background: 'rgba(0,0,0,0.5)', backdropFilter: 'blur(4px)',
+              color: 'white', fontSize: countdownText.length > 1 ? '48px' : '96px', fontWeight: '800',
+              zIndex: 100, borderRadius: '8px', animation: 'fadeIn 0.2s ease-out'
+            }}>
+              {countdownText}
+            </div>
+          )}
+        </div>
+      </div>
+      
+      <div style={{ padding: '10px', paddingBottom: 'calc(15px + env(safe-area-inset-bottom, 0px))' }}>
+        <button className="btn" style={{ backgroundColor: '#ef4444', color: 'white' }} onClick={() => finishGame()}>
+          Завершить досрочно
+        </button>
+      </div>
+    </div>
+  );
+}join(' ')
               } />
             )}
           </svg>

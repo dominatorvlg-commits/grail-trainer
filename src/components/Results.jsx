@@ -1,12 +1,24 @@
 import React, { useState } from 'react';
+import { serializeBoard } from '../utils/gameLogic';
 
-export default function Results({ score, foundWords, allWords, isAnalyzing, previousResult, onRetry, onMenu }) {
+export default function Results({ score, foundWords, allWords, isAnalyzing, previousResult, boardState, onRetry, onMenu }) {
   const [tab, setTab] = useState('current'); // 'current', 'previous', 'missed'
+  const [copied, setCopied] = useState(false);
 
   const currentWords = tab === 'previous' && previousResult ? previousResult.foundWords : foundWords;
   const currentScore = tab === 'previous' && previousResult ? previousResult.score : score;
 
   const missedWords = allWords.filter(w => !foundWords.find(fw => fw.word === w.word));
+
+  const handleShare = () => {
+    if (!boardState) return;
+    const code = serializeBoard(boardState);
+    const url = window.location.origin + window.location.pathname + '?board=' + code;
+    navigator.clipboard.writeText(url).then(() => {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    });
+  };
 
   return (
     <div className="screen">
@@ -88,6 +100,11 @@ export default function Results({ score, foundWords, allWords, isAnalyzing, prev
       </div>
 
       <div style={{ marginTop: 'auto', display: 'flex', flexDirection: 'column', gap: '10px' }}>
+        {boardState && (
+          <button className="btn" style={{ background: '#3b82f6', color: '#fff' }} onClick={handleShare}>
+            {copied ? 'Ссылка скопирована!' : 'Поделиться полем'}
+          </button>
+        )}
         <button className="btn green" onClick={onRetry}>Повторить битву</button>
         <button className="btn purple" onClick={onMenu}>В главное меню</button>
       </div>
