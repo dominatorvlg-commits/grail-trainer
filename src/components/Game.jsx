@@ -115,7 +115,7 @@ export default function Game({ mode, difficulty, initialBoard, isInfiniteTime, i
     if (selectedPath.length > 1) {
       submitWord(selectedPath);
       setBoard(prev => {
-        const newBoard = [...prev];
+        const newBoard = prev.map(row => [...row]);
         selectedPath.forEach(p => {
           const cell = { ...newBoard[p.r][p.c] };
           cell.currentLayer = (cell.currentLayer + 1) % LAYERS_COUNT;
@@ -126,7 +126,7 @@ export default function Game({ mode, difficulty, initialBoard, isInfiniteTime, i
     } else if (selectedPath.length === 1) {
       const { r, c } = selectedPath[0];
       setBoard(prev => {
-        const newBoard = [...prev];
+        const newBoard = prev.map(row => [...row]);
         const cell = { ...newBoard[r][c] };
         cell.currentLayer = (cell.currentLayer + 1) % LAYERS_COUNT;
         newBoard[r][c] = cell;
@@ -234,7 +234,6 @@ export default function Game({ mode, difficulty, initialBoard, isInfiniteTime, i
         onPointerUp={handlePointerUp} 
         onPointerLeave={handlePointerUp}
         onTouchMove={handleTouchMove}
-        onTouchEnd={handlePointerUp}
       >
         <div className="board" ref={boardRef}>
           {board.map((row, r) => 
