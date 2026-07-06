@@ -2,6 +2,12 @@ import dictionary from '../assets/dictionary.json';
 
 const BOARD_SIZE = 5;
 
+// Сортируем словарь от длинных слов к коротким, чтобы находить самые жирные пропущенные
+const sortedDict = dictionary
+  .map(w => w.toUpperCase())
+  .filter(w => w.length >= 4 && w.length <= 15 && !w.includes('-') && !w.includes(' '))
+  .sort((a, b) => b.length - a.length);
+
 const calculatePoints = (wordStr, pathNodes) => {
   let points = 0;
   let wordMultiplier = 1;
@@ -107,12 +113,6 @@ function findAllWordsWorker(board) {
 
   const validWords = [];
   
-  // Сортируем словарь от длинных слов к коротким, чтобы находить самые жирные пропущенные
-  const sortedDict = dictionary
-    .map(w => w.toUpperCase())
-    .filter(w => w.length >= 4 && w.length <= 15 && !w.includes('-') && !w.includes(' '))
-    .sort((a, b) => b.length - a.length);
-
   const startTime = Date.now();
   const TIME_LIMIT = 2000; // 2 секунды максимум
 
@@ -133,9 +133,13 @@ function findAllWordsWorker(board) {
 }
 
 self.onmessage = function(e) {
-  if (e.data.type === 'FIND_WORDS') {
-    const { board } = e.data;
-    const allWords = findAllWordsWorker(board);
-    self.postMessage({ type: 'RESULT', words: allWords });
+  try {
+    if (e.data.type === 'FIND_WORDS') {
+      const { board } = e.data;
+      const allWords = findAllWordsWorker(board);
+      self.postMessage({ type: 'RESULT', words: allWords });
+    }
+  } catch (error) {
+    self.postMessage({ type: 'ERROR', message: error.toString(), stack: error.stack });
   }
 };

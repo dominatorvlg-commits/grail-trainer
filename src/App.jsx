@@ -25,9 +25,20 @@ function App() {
   useEffect(() => {
     // Используем импорт с ?worker для совместимости со старыми телефонами (iOS < 15)
     workerRef.current = new WordFinderWorker();
+    
+    workerRef.current.onerror = (err) => {
+      console.error('Worker failed to load or threw fatal error:', err);
+      alert('Критическая ошибка Worker: ' + (err.message || 'Неизвестная ошибка'));
+      setIsAnalyzing(false);
+    };
+
     workerRef.current.onmessage = (e) => {
       if (e.data.type === 'RESULT') {
         setAllWords(e.data.words);
+        setIsAnalyzing(false);
+      } else if (e.data.type === 'ERROR') {
+        console.error('Worker error:', e.data);
+        alert('Ошибка при поиске слов: ' + e.data.message);
         setIsAnalyzing(false);
       }
     };
