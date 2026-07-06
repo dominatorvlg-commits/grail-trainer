@@ -92,9 +92,8 @@ export default function Game({ mode, difficulty, initialBoard, isInfiniteTime, i
       const centerY = rect.top + rect.height / 2;
       
       const distance = Math.hypot(clientX - centerX, clientY - centerY);
-      // Радиус 45% срезает углы плиток, создавая "мертвые зоны" в углах. 
-      // Это полностью исключает случайные зацепы при диагональных свайпах.
-      const maxRadius = Math.min(rect.width, rect.height) * 0.45;
+      // Уменьшаем хитбокс до 35% (раньше было 45%). Теперь нужно попасть почти в самый центр буквы!
+      const maxRadius = Math.min(rect.width, rect.height) * 0.35;
       
       if (distance > maxRadius) return;
       
@@ -261,13 +260,17 @@ export default function Game({ mode, difficulty, initialBoard, isInfiniteTime, i
           
           <svg className="svg-lines" viewBox="0 0 100 100" preserveAspectRatio="none">
             {selectedPath.length > 1 && (
-              <path d={
-                selectedPath.map((p, i) => {
-                  const x = (p.c * 20 + 10);
-                  const y = (p.r * 20 + 10);
-                  return `${i === 0 ? 'M' : 'L'} ${x} ${y}`;
-                }).join(' ')
-              } />
+              <path 
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                d={
+                  selectedPath.map((p, i) => {
+                    const x = (p.c * 20) + 10;
+                    const y = (p.r * 20) + 10;
+                    return `${i === 0 ? 'M' : 'L'} ${x} ${y}`;
+                  }).join(' ')
+                } 
+              />
             )}
           </svg>
 
