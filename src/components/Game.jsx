@@ -290,18 +290,4 @@ export default function Game({ mode, difficulty, initialBoard, isInfiniteTime, i
       </div>
     </div>
   );
-}join(' ')
-              } />
-            )}
-          </svg>
-        </div>
-      </div>
-      
-      <div style={{ padding: '10px', paddingBottom: 'calc(15px + env(safe-area-inset-bottom, 0px))' }}>
-        <button className="btn" style={{ backgroundColor: '#ef4444', color: 'white' }} onClick={() => finishGame()}>
-          Завершить досрочно
-        </button>
-      </div>
-    </div>
-  );
 }
