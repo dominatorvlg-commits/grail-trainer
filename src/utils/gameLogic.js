@@ -1,5 +1,6 @@
 import { COMBINATIONS } from '../data/combinations.js';
 import dictionary from '../assets/dictionary.json';
+import commonWords from '../assets/common_words.json';
 
 const DICTIONARY_SET = new Set();
 const TRIE = {};
@@ -15,6 +16,8 @@ dictionary.forEach(w => {
   }
   node.isWord = true;
 });
+
+const COMMON_WORDS_SET = new Set(commonWords);
 
 export const BOARD_SIZE = 5;
 export const LAYERS_COUNT = 5;
@@ -63,14 +66,19 @@ export const generateBoard = (mode, difficulty = 'medium') => {
   let wordsCount = 10;
   let bonusWeight = 2; // Притяжение к бонусам
 
-  // Если сложность случайная, выбираем одну из 5 базовых
+  // Если сложность случайная, выбираем одну из базовых
   let activeDifficulty = difficulty;
   if (difficulty === 'random_diff') {
-    const diffs = ['easy', 'medium', 'hard', 'classic', 'max'];
+    const diffs = ['super_easy', 'easy', 'medium', 'hard', 'classic', 'max'];
     activeDifficulty = diffs[Math.floor(Math.random() * diffs.length)];
   }
 
-  if (activeDifficulty === 'easy') {
+  if (activeDifficulty === 'super_easy') {
+    minLength = 6;
+    maxLength = 11;
+    wordsCount = 12;
+    bonusWeight = 20; // Очень сильно тянет к бонусам
+  } else if (activeDifficulty === 'easy') {
     minLength = 8;
     maxLength = 15;
     wordsCount = 15;
@@ -106,14 +114,39 @@ export const generateBoard = (mode, difficulty = 'medium') => {
 
     if (modeEndings.length > 0) {
       const candidateWords = [];
-      DICTIONARY_SET.forEach(word => {
+      const wordSource = activeDifficulty === 'super_easy' ? COMMON_WORDS_SET : DICTIONARY_SET;
+      
+      wordSource.forEach(word => {
         if (word.length >= minLength && word.length <= maxLength && modeEndings.some(ending => word.endsWith(ending))) {
           candidateWords.push(word);
         }
       });
+      
+      // Если для супер-легкого режима не нашлось слов с таким окончанием, берём из основного словаря
+      if (candidateWords.length === 0 && activeDifficulty === 'super_easy') {
+        DICTIONARY_SET.forEach(word => {
+          if (word.length >= minLength && word.length <= maxLength && modeEndings.some(ending => word.endsWith(ending))) {
+            candidateWords.push(word);
+          }
+        });
+      }
+      
       candidateWords.sort(() => Math.random() - 0.5);
       targetWords = candidateWords.slice(0, wordsCount);
     }
+  } else {
+    // В случайном режиме просто берем слова без ограничений по окончаниям
+    const candidateWords = [];
+    const wordSource = activeDifficulty === 'super_easy' ? COMMON_WORDS_SET : DICTIONARY_SET;
+    
+    wordSource.forEach(word => {
+      if (word.length >= minLength && word.length <= maxLength) {
+        candidateWords.push(word);
+      }
+    });
+    
+    candidateWords.sort(() => Math.random() - 0.5);
+    targetWords = candidateWords.slice(0, wordsCount);
   }
 
   // Функция поиска случайного пути для слова

@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { COMBINATIONS } from '../data/combinations.js';
 
 const DIFF_HINTS = {
+  super_easy: 'Самые простые и часто употребляемые слова (6-10 букв), которые проходят прямо по бонусам. Идеально для старта.',
   easy: 'Поле содержит много длинных слов (8-15 букв), которые специально проходят через максимальное число бонусов.',
   medium: 'Сбалансированное поле со словами средней длины (6-12 букв). Бонусы распределены полу-случайно.',
   hard: 'Короткие слова (4-8 букв), бонусы разбросаны случайным образом вдали от хороших комбинаций. Настоящий вызов!',
@@ -72,7 +73,10 @@ export default function Menu({ onStart, theme, onToggleTheme }) {
           Сложность генерации:
         </div>
         
-        <div className="diff-selector">
+        <div className="diff-selector" style={{ flexWrap: 'wrap' }}>
+          <input type="radio" id="diff-super-easy" className="diff-radio" name="diff" value="super_easy" checked={difficulty === 'super_easy'} onChange={() => setDifficulty('super_easy')} />
+          <label htmlFor="diff-super-easy" className="diff-label easy" style={{ backgroundColor: '#22c55e' }}>Супер легко</label>
+          
           <input type="radio" id="diff-easy" className="diff-radio" name="diff" value="easy" checked={difficulty === 'easy'} onChange={() => setDifficulty('easy')} />
           <label htmlFor="diff-easy" className="diff-label easy">Легко</label>
           
