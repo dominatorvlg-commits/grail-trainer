@@ -4,6 +4,7 @@ import Menu from './components/Menu';
 import Game from './components/Game';
 import Results from './components/Results';
 import { deserializeBoard, serializeBoard } from './utils/gameLogic';
+import WordFinderWorker from './workers/wordFinder.js?worker';
 
 function App() {
   const [gameState, setGameState] = useState('menu'); // 'menu', 'game', 'results'
@@ -22,8 +23,8 @@ function App() {
   const workerRef = useRef(null);
 
   useEffect(() => {
-    // Инициализируем Web Worker для фонового поиска
-    workerRef.current = new Worker(new URL('./workers/wordFinder.js', import.meta.url), { type: 'module' });
+    // Используем импорт с ?worker для совместимости со старыми телефонами (iOS < 15)
+    workerRef.current = new WordFinderWorker();
     workerRef.current.onmessage = (e) => {
       if (e.data.type === 'RESULT') {
         setAllWords(e.data.words);
