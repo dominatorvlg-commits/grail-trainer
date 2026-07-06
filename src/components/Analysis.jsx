@@ -118,10 +118,9 @@ export default function Analysis({ initialBoard, initialWords, onExit, workerRef
         });
         setBoard(newBoard);
         
-        // Пересчитываем слова
-        setIsCalculating(true);
-        if (workerRef.current) {
-          workerRef.current.postMessage({ type: 'FIND_WORDS', board: newBoard });
+        // Переход к следующему слову автоматически
+        if (wordIndex < words.length - 1) {
+          setWordIndex(wordIndex + 1);
         }
       }
     }
