@@ -68,6 +68,7 @@ export default function Game({ mode, difficulty, initialBoard, isInfiniteTime, i
   };
 
   const handlePointerDown = (e, r, c) => {
+    if (e.isPrimary === false) return;
     if (countdown > 0) return; // Блокируем игру во время отсчета
     e.preventDefault();
     setIsDragging(true);
@@ -76,6 +77,7 @@ export default function Game({ mode, difficulty, initialBoard, isInfiniteTime, i
   };
 
   const handlePointerEnter = (e, r, c) => {
+    if (e.isPrimary === false) return;
     if (countdown > 0) return;
     e.preventDefault();
     if (!isDragging) return;
@@ -108,20 +110,23 @@ export default function Game({ mode, difficulty, initialBoard, isInfiniteTime, i
   };
 
   const handlePointerUp = (e) => {
+    if (e && e.isPrimary === false) return;
     if (e) e.preventDefault();
     setIsDragging(false);
     
     if (selectedPath.length > 1) {
-      submitWord(selectedPath);
-      setBoard(prev => {
-        const newBoard = prev.map(row => [...row]);
-        selectedPath.forEach(p => {
-          const cell = { ...newBoard[p.r][p.c] };
-          cell.currentLayer = (cell.currentLayer + 1) % LAYERS_COUNT;
-          newBoard[p.r][p.c] = cell;
+      const isValid = submitWord(selectedPath);
+      if (isValid) {
+        setBoard(prev => {
+          const newBoard = prev.map(row => [...row]);
+          selectedPath.forEach(p => {
+            const cell = { ...newBoard[p.r][p.c] };
+            cell.currentLayer = (cell.currentLayer + 1) % LAYERS_COUNT;
+            newBoard[p.r][p.c] = cell;
+          });
+          return newBoard;
         });
-        return newBoard;
-      });
+      }
     } else if (selectedPath.length === 1) {
       const { r, c } = selectedPath[0];
       setBoard(prev => {
@@ -153,8 +158,10 @@ export default function Game({ mode, difficulty, initialBoard, isInfiniteTime, i
         const points = calculatePoints(wordStr, nodes);
         setScore(prev => prev + points);
         setFoundWords(prev => [{ word: wordStr, points }, ...prev]);
+        return true;
       }
     }
+    return false;
   };
 
   const handleTouchMove = (e) => {
@@ -232,6 +239,7 @@ export default function Game({ mode, difficulty, initialBoard, isInfiniteTime, i
         className="board-container" 
         onPointerUp={handlePointerUp} 
         onPointerLeave={handlePointerUp}
+        onPointerCancel={handlePointerUp}
         onTouchMove={handleTouchMove}
       >
         <div className="board" ref={boardRef}>
