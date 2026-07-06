@@ -115,18 +115,16 @@ export default function Game({ mode, difficulty, initialBoard, isInfiniteTime, i
     setIsDragging(false);
     
     if (selectedPath.length > 1) {
-      const isValid = submitWord(selectedPath);
-      if (isValid) {
-        setBoard(prev => {
-          const newBoard = prev.map(row => [...row]);
-          selectedPath.forEach(p => {
-            const cell = { ...newBoard[p.r][p.c] };
-            cell.currentLayer = (cell.currentLayer + 1) % LAYERS_COUNT;
-            newBoard[p.r][p.c] = cell;
-          });
-          return newBoard;
+      submitWord(selectedPath);
+      setBoard(prev => {
+        const newBoard = prev.map(row => [...row]);
+        selectedPath.forEach(p => {
+          const cell = { ...newBoard[p.r][p.c] };
+          cell.currentLayer = (cell.currentLayer + 1) % LAYERS_COUNT;
+          newBoard[p.r][p.c] = cell;
         });
-      }
+        return newBoard;
+      });
     } else if (selectedPath.length === 1) {
       const { r, c } = selectedPath[0];
       setBoard(prev => {
