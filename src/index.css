@@ -563,3 +563,26 @@ input:checked + .slider:before {
 [data-theme="light"] .diff-radio:checked + .diff-label {
   color: white;
 }
+
+/* Analysis Mode Hints */
+.tile.hint-path {
+  background-color: var(--tile-bg);
+  color: var(--text-main);
+  box-shadow: 0 0 10px rgba(16, 185, 129, 0.4);
+  border: 2px dashed rgba(16, 185, 129, 0.5);
+  opacity: 0.8;
+}
+.tile.hint-start {
+  background-color: var(--tile-bg);
+  color: var(--text-main);
+  box-shadow: 0 0 15px rgba(16, 185, 129, 0.8);
+  border: 2px solid rgba(16, 185, 129, 1);
+  transform: scale(1.05);
+  z-index: 5;
+}
+.hint-svg-path {
+  stroke: rgba(16, 185, 129, 0.4);
+  stroke-width: 2;
+  fill: none;
+  stroke-dasharray: 4;
+}

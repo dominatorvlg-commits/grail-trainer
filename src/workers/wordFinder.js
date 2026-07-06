@@ -60,6 +60,7 @@ function findAllWordsWorker(board) {
 
   const findPathForWord = (word) => {
     let maxPoints = -1;
+    let bestPath = null;
     const visited = Array(BOARD_SIZE).fill(0).map(() => Array(BOARD_SIZE).fill(false));
     let dfsSteps = 0;
     const MAX_STEPS = 2000;
@@ -69,6 +70,7 @@ function findAllWordsWorker(board) {
 
       if (depth === word.length) {
         maxPoints = calculatePoints(word, pathNodes);
+        bestPath = [...pathNodes];
         return true; // Нашли слово - прекращаем поиск, нам не нужен абсолютный максимум очков для пропущенных
       }
 
@@ -82,7 +84,7 @@ function findAllWordsWorker(board) {
           if (nr >= 0 && nr < BOARD_SIZE && nc >= 0 && nc < BOARD_SIZE) {
             if (!visited[nr][nc] && boardHasChar[nr][nc][nextChar]) {
               visited[nr][nc] = true;
-              pathNodes.push({ letter: nextChar, multiplier: board[nr][nc].multiplier });
+              pathNodes.push({ r: nr, c: nc, letter: nextChar, multiplier: board[nr][nc].multiplier });
               
               if (dfs(nr, nc, depth + 1, pathNodes)) return true;
               
@@ -100,15 +102,15 @@ function findAllWordsWorker(board) {
       for (let c = 0; c < BOARD_SIZE; c++) {
         if (boardHasChar[r][c][firstChar]) {
           visited[r][c] = true;
-          if (dfs(r, c, 1, [{ letter: firstChar, multiplier: board[r][c].multiplier }])) {
-            return maxPoints;
+          if (dfs(r, c, 1, [{ r, c, letter: firstChar, multiplier: board[r][c].multiplier }])) {
+            return { points: maxPoints, path: bestPath };
           }
           visited[r][c] = false;
         }
       }
     }
 
-    return -1;
+    return null;
   };
 
   const validWords = [];
@@ -121,9 +123,9 @@ function findAllWordsWorker(board) {
 
     const word = sortedDict[i];
     if (isTheoreticallyPossible(word)) {
-      const pts = findPathForWord(word);
-      if (pts > 0) {
-        validWords.push({ word, points: pts, length: word.length });
+      const res = findPathForWord(word);
+      if (res && res.points > 0) {
+        validWords.push({ word, points: res.points, length: word.length, path: res.path });
         if (validWords.length >= 100) break; // Нет смысла искать больше 100 пропущенных
       }
     }

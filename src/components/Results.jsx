@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { serializeBoard } from '../utils/gameLogic';
 
-export default function Results({ score, foundWords, allWords, isAnalyzing, previousResult, boardState, onRetry, onMenu }) {
+export default function Results({ score, foundWords, allWords, isAnalyzing, previousResult, isDuel, boardState, onRetry, onMenu, onAnalysis }) {
   const [tab, setTab] = useState('current'); // 'current', 'previous', 'missed'
   const [copied, setCopied] = useState(false);
 
@@ -100,7 +100,10 @@ export default function Results({ score, foundWords, allWords, isAnalyzing, prev
       </div>
 
       <div style={{ marginTop: 'auto', paddingTop: '10px', paddingBottom: 'calc(10px + env(safe-area-inset-bottom, 0px))' }}>
-        <button className="btn green" style={{ width: '100%', marginBottom: '10px' }} onClick={onRetry}>
+        <button className="btn green" style={{ width: '100%', marginBottom: '10px' }} onClick={onAnalysis} disabled={allWords.length === 0 && !isAnalyzing}>
+          Разбор поля
+        </button>
+        <button className="btn" style={{ width: '100%', marginBottom: '10px', background: 'var(--glass-bg)', color: 'var(--text-main)', border: '1px solid var(--glass-border)' }} onClick={onRetry}>
           Повторить битву
         </button>
         <div style={{ display: 'flex', gap: '10px' }}>

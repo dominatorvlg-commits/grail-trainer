@@ -3,6 +3,7 @@ import './index.css';
 import Menu from './components/Menu';
 import Game from './components/Game';
 import Results from './components/Results';
+import Analysis from './components/Analysis';
 import { deserializeBoard, serializeBoard } from './utils/gameLogic';
 import WordFinderWorker from './workers/wordFinder.js?worker';
 
@@ -69,6 +70,7 @@ function App() {
       let pagePath = '/';
       if (gameState === 'game') pagePath = '/game';
       if (gameState === 'results') pagePath = '/results';
+      if (gameState === 'analysis') pagePath = '/analysis';
       
       window.ym(110444263, 'hit', pagePath, {
         title: `Грааль Тренажер - ${gameState}`
@@ -140,8 +142,17 @@ function App() {
           boardState={boardState}
           onRetry={() => startGame(mode, true)}
           onMenu={goMenu}
+          onAnalysis={() => setGameState('analysis')}
         />
       }
+      {gameState === 'analysis' && (
+        <Analysis 
+          initialBoard={boardState} 
+          initialWords={allWords} 
+          workerRef={workerRef}
+          onExit={() => setGameState('results')} 
+        />
+      )}
     </div>
   );
 }
