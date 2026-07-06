@@ -101,24 +101,52 @@ export default function Game({ mode, difficulty, initialBoard, isInfiniteTime, i
       const c = parseInt(tile.dataset.col);
       
       setSelectedPath(prev => {
-        if (prev.length >= 2) {
-          const prevCell = prev[prev.length - 2];
-          if (prevCell.r === r && prevCell.c === c) {
-            return prev.slice(0, -1);
-          }
-        }
-
         if (prev.length === 0) return prev;
         
-        const lastCell = prev[prev.length - 1];
-        if (lastCell.r === r && lastCell.c === c) return prev;
-        
-        const isNeighbor = Math.abs(lastCell.r - r) <= 1 && Math.abs(lastCell.c - c) <= 1;
-        const isNotAlreadySelected = !prev.find(p => p.r === r && p.c === c);
-        
-        if (isNeighbor && isNotAlreadySelected) {
-          return [...prev, { r, c }];
+        // 1. Умный возврат (Advanced Backtracking)
+        // Если палец вернулся на ЛЮБУЮ уже выделенную букву - обрезаем хвост слова до нее
+        const existingIndex = prev.findIndex(p => p.r === r && p.c === c);
+        if (existingIndex !== -1) {
+          return prev.slice(0, existingIndex + 1);
         }
+        
+        const lastCell = prev[prev.length - 1];
+        
+        // 2. Авто-заполнение пропусков (Path Interpolation)
+        // Если из-за скорости или мертвой зоны буква была пропущена - достраиваем прямую линию
+        const dr = r - lastCell.r;
+        const dc = c - lastCell.c;
+        const distR = Math.abs(dr);
+        const distC = Math.abs(dc);
+        
+        // Проверяем, образуют ли координаты прямую линию (по горизонтали, вертикали или ровной диагонали)
+        const isStraightLine = (distR === 0 && distC > 0) || (distC === 0 && distR > 0) || (distR === distC);
+        
+        if (isStraightLine) {
+          const steps = Math.max(distR, distC);
+          const stepR = dr / steps;
+          const stepC = dc / steps;
+          
+          let newPathSegments = [];
+          let isValidJump = true;
+          
+          for (let i = 1; i <= steps; i++) {
+            const intermediateR = lastCell.r + stepR * i;
+            const intermediateC = lastCell.c + stepC * i;
+            
+            const isAlreadySelected = prev.find(p => p.r === intermediateR && p.c === intermediateC);
+            if (isAlreadySelected) {
+              isValidJump = false; // Нельзя перепрыгивать через уже выделенные в этом слове буквы
+              break;
+            }
+            newPathSegments.push({ r: intermediateR, c: intermediateC });
+          }
+          
+          if (isValidJump) {
+            return [...prev, ...newPathSegments];
+          }
+        }
+        
         return prev;
       });
     }
