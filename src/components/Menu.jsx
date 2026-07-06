@@ -43,6 +43,7 @@ export default function Menu({ onStart, theme, onToggleTheme }) {
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
         <h1 style={{ marginBottom: '0', textAlign: 'left' }}>Грааль Тренажер</h1>
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <span style={{ fontSize: '14px', fontWeight: '600', color: 'var(--text-muted)' }}>Тема:</span>
           <span style={{ fontSize: '18px' }}>{theme === 'light' ? '☀️' : '🌙'}</span>
           <label className="switch">
             <input 
@@ -75,7 +76,7 @@ export default function Menu({ onStart, theme, onToggleTheme }) {
         
         <div className="diff-selector" style={{ flexWrap: 'wrap' }}>
           <input type="radio" id="diff-super-easy" className="diff-radio" name="diff" value="super_easy" checked={difficulty === 'super_easy'} onChange={() => setDifficulty('super_easy')} />
-          <label htmlFor="diff-super-easy" className="diff-label easy" style={{ backgroundColor: '#22c55e' }}>Супер легко</label>
+          <label htmlFor="diff-super-easy" className="diff-label super-easy">Супер легко</label>
           
           <input type="radio" id="diff-easy" className="diff-radio" name="diff" value="easy" checked={difficulty === 'easy'} onChange={() => setDifficulty('easy')} />
           <label htmlFor="diff-easy" className="diff-label easy">Легко</label>
@@ -144,13 +145,14 @@ export default function Menu({ onStart, theme, onToggleTheme }) {
             </button>
           </div>
         ) : (
-          <button 
-            className="btn" 
-            style={{ marginTop: '10px', background: 'rgba(255,255,255,0.1)', border: '1px dashed var(--glass-border)' }} 
-            onClick={() => setShowCodeInput(true)}
-          >
-            Ввести номер поля (Дуэль)
-          </button>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginTop: '15px' }}>
+            <button 
+              className="btn duel" 
+              onClick={() => setShowCodeInput(true)}
+            >
+              Ввести номер поля (Дуэль)
+            </button>
+          </div>
         )}
       </div>
     </div>
