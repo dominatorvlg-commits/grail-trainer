@@ -41,12 +41,12 @@ export default function Results({ score, foundWords, allWords, isAnalyzing, prev
         </div>
       )}
 
-      <div className="glass-panel" style={{ textAlign: 'center', marginBottom: '15px' }}>
-        <div style={{ fontSize: '14px', color: 'var(--text-muted)', marginBottom: '5px' }}>ИТОГОВЫЙ СЧЕТ</div>
-        <div style={{ fontSize: '42px', fontWeight: '800', color: 'var(--accent-gold)' }}>
+      <div className="glass-panel" style={{ textAlign: 'center', marginBottom: '10px', padding: '12px' }}>
+        <div style={{ fontSize: '12px', color: 'var(--text-muted)', marginBottom: '2px' }}>ИТОГОВЫЙ СЧЕТ</div>
+        <div style={{ fontSize: '32px', fontWeight: '800', color: 'var(--accent-gold)', lineHeight: '1.1' }}>
           {currentScore}
         </div>
-        <div style={{ fontSize: '14px', color: 'var(--text-muted)', marginTop: '5px' }}>
+        <div style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: '2px' }}>
           Найдено слов: {currentWords.length} / {allWords.length || '?'}
         </div>
       </div>
@@ -99,14 +99,20 @@ export default function Results({ score, foundWords, allWords, isAnalyzing, prev
         )}
       </div>
 
-      <div style={{ marginTop: 'auto', display: 'flex', flexDirection: 'column', gap: '10px' }}>
-        {boardState && (
-          <button className="btn" style={{ background: '#3b82f6', color: '#fff' }} onClick={handleShare}>
-            {copied ? 'Ссылка скопирована!' : 'Поделиться полем'}
+      <div style={{ marginTop: 'auto', paddingTop: '10px', paddingBottom: 'calc(10px + env(safe-area-inset-bottom, 0px))' }}>
+        <button className="btn green" style={{ width: '100%', marginBottom: '10px' }} onClick={onRetry}>
+          Повторить битву
+        </button>
+        <div style={{ display: 'flex', gap: '10px' }}>
+          <button className="btn purple" style={{ flex: 1, padding: '12px 10px', fontSize: '15px' }} onClick={onMenu}>
+            Главное меню
           </button>
-        )}
-        <button className="btn green" onClick={onRetry}>Повторить битву</button>
-        <button className="btn purple" onClick={onMenu}>В главное меню</button>
+          {boardState && (
+            <button className="btn" style={{ flex: 1, background: '#3b82f6', color: '#fff', padding: '12px 10px', fontSize: '15px' }} onClick={handleShare}>
+              {copied ? 'Скопировано!' : 'Поделиться'}
+            </button>
+          )}
+        </div>
       </div>
     </div>
   );
