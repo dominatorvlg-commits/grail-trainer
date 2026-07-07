@@ -111,7 +111,7 @@ export default function Results({ score, foundWords, allWords, isAnalyzing, prev
       </div>
 
       {tab === 'target' && targetLengths.length > 0 && (
-        <div style={{ display: 'flex', gap: '8px', overflowX: 'auto', padding: '10px 20px 0 20px', scrollbarWidth: 'none' }}>
+        <div style={{ flexShrink: 0, display: 'flex', gap: '8px', overflowX: 'auto', padding: '10px 0', marginBottom: '5px', scrollbarWidth: 'none' }}>
           {targetLengths.map(len => {
             const wordsOfLen = targetWordsByLength[len];
             const foundOfLen = wordsOfLen.filter(w => foundWords.find(fw => fw.word === w.word)).length;
@@ -142,7 +142,7 @@ export default function Results({ score, foundWords, allWords, isAnalyzing, prev
         </div>
       )}
 
-      <div className="word-list">
+      <div className="word-list" style={{ flex: 1, minHeight: 0, marginTop: tab === 'target' ? '5px' : '15px' }}>
         {isAnalyzing ? (
           <div style={{ textAlign: 'center', padding: '40px 20px', color: 'var(--text-muted)' }}>
             <div className="spinner" style={{ fontSize: '24px', marginBottom: '15px', animation: 'spin 2s linear infinite' }}>⏳</div>
