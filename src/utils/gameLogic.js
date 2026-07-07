@@ -259,13 +259,19 @@ export const generateBoard = (mode, difficulty = 'medium') => {
     forbiddenEndings = allEndings.filter(e => !modeEndings.includes(e));
   }
 
-  // Исключаем буквы Ь и Й из случайного пула, если они не нужны для текущих окончаний, чтобы уменьшить случайные комбинации
+  let garbageAlphabet = restrictedAlphabet;
   if (modeEndings.length > 0) {
-    if (!modeEndings.some(e => e.includes('Ь'))) {
-      restrictedAlphabet = restrictedAlphabet.replace('Ь', '');
-    }
-    if (!modeEndings.some(e => e.includes('Й'))) {
-      restrictedAlphabet = restrictedAlphabet.replace('Й', '');
+    let endingsLetters = new Set();
+    modeEndings.forEach(e => {
+      for (let char of e) endingsLetters.add(char);
+    });
+    
+    endingsLetters.forEach(char => {
+      garbageAlphabet = garbageAlphabet.replace(new RegExp(char, 'g'), '');
+    });
+
+    if (garbageAlphabet.length < 10) {
+      garbageAlphabet += "АБВГДЕЖЗИЙКЛМНОПРСТУФХЦЧШЩЪЫЬЭЮЯ"; 
     }
   }
 
@@ -295,26 +301,53 @@ export const generateBoard = (mode, difficulty = 'medium') => {
   // Функция поиска случайного пути для слова
   const embedWord = (word) => {
     const tryPath = () => {
-      const path = [];
+      const pathNodes = [];
       const visited = new Set();
-      let r = Math.floor(Math.random() * BOARD_SIZE);
-      let c = Math.floor(Math.random() * BOARD_SIZE);
+      
+      let possibleStarts = [];
+      let emptyStarts = [];
+      for(let rr=0; rr<BOARD_SIZE; rr++){
+        for(let cc=0; cc<BOARD_SIZE; cc++){
+          if(board[rr][cc].layers.includes(word[0])) {
+            possibleStarts.push({r: rr, c: cc});
+          }
+          if(board[rr][cc].layers.includes(null)) {
+            emptyStarts.push({r: rr, c: cc});
+          }
+        }
+      }
+
+      let r, c;
+      if (possibleStarts.length > 0 && Math.random() > 0.1) {
+         const st = possibleStarts[Math.floor(Math.random() * possibleStarts.length)];
+         r = st.r; c = st.c;
+      } else if (emptyStarts.length > 0) {
+         const st = emptyStarts[Math.floor(Math.random() * emptyStarts.length)];
+         r = st.r; c = st.c;
+      } else {
+         return null; 
+      }
       
       for (let i = 0; i < word.length; i++) {
-        path.push({r, c});
+        const hasLetter = board[r][c].layers.includes(word[i]);
+        pathNodes.push({r, c, reused: hasLetter});
         visited.add(`${r},${c}`);
         
         if (i === word.length - 1) break;
 
+        const nextChar = word[i+1];
         let neighbors = [];
+        let preferredNeighbors = [];
+
         for (let dr = -1; dr <= 1; dr++) {
           for (let dc = -1; dc <= 1; dc++) {
             if (dr === 0 && dc === 0) continue;
             const nr = r + dr, nc = c + dc;
             if (nr >= 0 && nr < BOARD_SIZE && nc >= 0 && nc < BOARD_SIZE && !visited.has(`${nr},${nc}`)) {
               const cell = board[nr][nc];
-              if (cell.layers.includes(null)) {
-                // Вес бонуса
+              if (cell.layers.includes(nextChar)) {
+                 preferredNeighbors.push({nr, nc});
+              } else if (cell.layers.includes(null)) {
                 const weight = cell.multiplier !== 'w1' ? Math.max(1, bonusWeight) : 1; 
                 for (let w = 0; w < weight; w++) neighbors.push({nr, nc});
               }
@@ -322,24 +355,33 @@ export const generateBoard = (mode, difficulty = 'medium') => {
           }
         }
         
-        if (neighbors.length === 0) return null; // Тупик
-        
-        const next = neighbors[Math.floor(Math.random() * neighbors.length)];
-        r = next.nr;
-        c = next.nc;
+        if (preferredNeighbors.length > 0 && Math.random() > 0.1) {
+          const next = preferredNeighbors[Math.floor(Math.random() * preferredNeighbors.length)];
+          r = next.nr; c = next.nc;
+        } else if (neighbors.length > 0) {
+          const next = neighbors[Math.floor(Math.random() * neighbors.length)];
+          r = next.nr; c = next.nc;
+        } else if (preferredNeighbors.length > 0) {
+          const next = preferredNeighbors[Math.floor(Math.random() * preferredNeighbors.length)];
+          r = next.nr; c = next.nc;
+        } else {
+          return null;
+        }
       }
-      return path;
+      return pathNodes;
     };
 
     for (let attempts = 0; attempts < 50; attempts++) {
-      const path = tryPath();
-      if (path) {
+      const pathNodes = tryPath();
+      if (pathNodes) {
         for (let i = 0; i < word.length; i++) {
-          const {r, c} = path[i];
-          const cell = board[r][c];
-          const emptyIndex = cell.layers.indexOf(null);
-          if (emptyIndex !== -1) {
-            cell.layers[emptyIndex] = word[i];
+          const {r, c, reused} = pathNodes[i];
+          if (!reused) {
+            const cell = board[r][c];
+            const emptyIndex = cell.layers.indexOf(null);
+            if (emptyIndex !== -1) {
+              cell.layers[emptyIndex] = word[i];
+            }
           }
         }
         break;
@@ -374,7 +416,7 @@ export const generateBoard = (mode, difficulty = 'medium') => {
           const cell = board[r][c];
           for (let l = 0; l < LAYERS_COUNT; l++) {
             if (cell.layers[l] === null) {
-              cell.layers[l] = getRandomLetter(restrictedAlphabet);
+              cell.layers[l] = getRandomLetter(garbageAlphabet);
             }
           }
       }
