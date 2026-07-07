@@ -1,7 +1,7 @@
 import React, { useState, useMemo } from 'react';
-import { serializeBoard, getDifficultyConstraints } from '../utils/gameLogic';
+import { serializeBoard, getDifficultyConstraints, getModeEndings } from '../utils/gameLogic';
 
-export default function Results({ score, foundWords, allWords, isAnalyzing, previousResult, isDuel, boardState, difficulty, onRetry, onMenu, onAnalysis }) {
+export default function Results({ score, foundWords, allWords, isAnalyzing, previousResult, isDuel, boardState, difficulty, mode, onRetry, onMenu, onAnalysis }) {
   const [tab, setTab] = useState('target'); // 'found', 'target', 'top', 'previous'
   const [copied, setCopied] = useState(false);
 
@@ -14,10 +14,18 @@ export default function Results({ score, foundWords, allWords, isAnalyzing, prev
 
   const { targetMissed, topMissed, minLength, maxLength } = useMemo(() => {
     const { minLength, maxLength } = getDifficultyConstraints(difficulty || 'medium');
-    const target = missedWords.filter(w => w.length >= minLength && w.length <= maxLength).slice(0, 500);
+    const modeEndings = getModeEndings(mode);
+    
+    const target = missedWords.filter(w => {
+      const lengthValid = w.length >= minLength && w.length <= maxLength;
+      // Если окончания известны (не пустой массив), проверяем их. Иначе пускаем все.
+      const endingValid = modeEndings.length > 0 ? modeEndings.some(ending => w.word.toUpperCase().endsWith(ending)) : true;
+      return lengthValid && endingValid;
+    }).slice(0, 500);
+    
     const top = [...missedWords].sort((a, b) => b.points - a.points).slice(0, 100);
     return { targetMissed: target, topMissed: top, minLength, maxLength };
-  }, [missedWords, difficulty]);
+  }, [missedWords, difficulty, mode]);
 
   const handleShare = () => {
     if (!boardState) return;

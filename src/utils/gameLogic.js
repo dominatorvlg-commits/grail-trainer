@@ -187,6 +187,17 @@ export const getDifficultyConstraints = (difficulty) => {
   return { minLength, maxLength, wordsCount, bonusWeight };
 };
 
+export const getModeEndings = (mode) => {
+  if (!mode || mode === 'mixed' || mode === 'random' || mode === 'duel') {
+    const all = [];
+    Object.values(COMBINATIONS).forEach(cat => {
+      all.push(...cat.endings);
+    });
+    return all;
+  }
+  return COMBINATIONS[mode] ? COMBINATIONS[mode].endings : [];
+};
+
 export const generateBoard = (mode, difficulty = 'medium') => {
   const board = Array(BOARD_SIZE).fill(null).map(() => 
     Array(BOARD_SIZE).fill(null).map(() => ({

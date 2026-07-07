@@ -150,6 +150,7 @@ function App() {
           isDuel={isDuel}
           boardState={boardState}
           difficulty={difficulty}
+          mode={mode}
           onRetry={() => startGame(mode, true)}
           onMenu={goMenu}
           onAnalysis={handleAnalysis}
