@@ -298,21 +298,48 @@ export const generateBoard = (mode, difficulty = 'medium') => {
       targetWords = candidateWords.slice(0, wordsCount);
   }
 
-  // Функция поиска случайного пути для слова
-  const embedWord = (word) => {
+  // 1. Группируем слова по самому длинному окончанию
+  const wordGroups = {};
+  targetWords.forEach(word => {
+    let matchedEnding = "";
+    let stem = word;
+    for (let ending of modeEndings) {
+      if (word.endsWith(ending) && ending.length > matchedEnding.length) {
+        matchedEnding = ending;
+        stem = word.substring(0, word.length - ending.length);
+      }
+    }
+    const key = matchedEnding || "NO_ENDING";
+    if (!wordGroups[key]) wordGroups[key] = { ending: matchedEnding, stems: [], fullWords: [] };
+    wordGroups[key].stems.push(stem);
+    wordGroups[key].fullWords.push(word);
+  });
+
+  const embedWordBase = (word, forceAnchor = null) => {
     const tryPath = () => {
       const pathNodes = [];
       const visited = new Set();
       
       let possibleStarts = [];
       let emptyStarts = [];
-      for(let rr=0; rr<BOARD_SIZE; rr++){
-        for(let cc=0; cc<BOARD_SIZE; cc++){
-          if(board[rr][cc].layers.includes(word[0])) {
-            possibleStarts.push({r: rr, c: cc});
-          }
-          if(board[rr][cc].layers.includes(null)) {
-            emptyStarts.push({r: rr, c: cc});
+      
+      if (forceAnchor) {
+         for(let dr=-1; dr<=1; dr++){
+           for(let dc=-1; dc<=1; dc++){
+             if(dr===0 && dc===0) continue;
+             const nr = forceAnchor.r + dr, nc = forceAnchor.c + dc;
+             if(nr>=0 && nr<BOARD_SIZE && nc>=0 && nc<BOARD_SIZE) {
+               if(board[nr][nc].layers.includes(word[0])) possibleStarts.push({r: nr, c: nc});
+               if(board[nr][nc].layers.includes(null)) emptyStarts.push({r: nr, c: nc});
+             }
+           }
+         }
+         visited.add(`${forceAnchor.r},${forceAnchor.c}`); 
+      } else {
+        for(let rr=0; rr<BOARD_SIZE; rr++){
+          for(let cc=0; cc<BOARD_SIZE; cc++){
+            if(board[rr][cc].layers.includes(word[0])) possibleStarts.push({r: rr, c: cc});
+            if(board[rr][cc].layers.includes(null)) emptyStarts.push({r: rr, c: cc});
           }
         }
       }
@@ -371,7 +398,7 @@ export const generateBoard = (mode, difficulty = 'medium') => {
       return pathNodes;
     };
 
-    for (let attempts = 0; attempts < 50; attempts++) {
+    for (let attempts = 0; attempts < 100; attempts++) {
       const pathNodes = tryPath();
       if (pathNodes) {
         for (let i = 0; i < word.length; i++) {
@@ -384,12 +411,36 @@ export const generateBoard = (mode, difficulty = 'medium') => {
             }
           }
         }
-        break;
+        return pathNodes;
       }
     }
+    return null;
   };
 
-  targetWords.forEach(word => embedWord(word));
+  // 2. Встраиваем слова
+  Object.values(wordGroups).forEach(group => {
+    if (group.ending === "") {
+      group.fullWords.forEach(w => embedWordBase(w));
+    } else {
+      const endingPath = embedWordBase(group.ending);
+      if (endingPath) {
+        const anchorCell = { r: endingPath[0].r, c: endingPath[0].c }; 
+        
+        group.stems.forEach((stem, index) => {
+          if (stem.length > 0) {
+             const reversedStem = stem.split('').reverse().join('');
+             const success = embedWordBase(reversedStem, anchorCell);
+             if (!success) {
+                // Если не удалось прицепить корень к якорю, просто размещаем все слово целиком где-нибудь
+                embedWordBase(group.fullWords[index]);
+             }
+          }
+        });
+      } else {
+        group.fullWords.forEach(w => embedWordBase(w));
+      }
+    }
+  });
 
   // Сохраняем "каркас" поля со встроенными словами (остальные слоты null)
   const baseLayers = Array(BOARD_SIZE).fill(null).map((_, r) => 
