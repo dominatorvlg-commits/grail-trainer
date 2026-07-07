@@ -17,11 +17,10 @@ export default function Results({ score, foundWords, allWords, isAnalyzing, prev
     const { minLength, maxLength } = getDifficultyConstraints(difficulty || 'medium');
     const modeEndings = getModeEndings(mode);
     
-    // Целевые слова (все: и найденные, и пропущенные)
+    // Целевые слова (все: и найденные, и пропущенные любой длины)
     const targetAll = allWords.filter(w => {
-      const lengthValid = w.length >= minLength && w.length <= maxLength;
       const endingValid = modeEndings.length > 0 ? modeEndings.some(ending => w.word.toUpperCase().endsWith(ending)) : true;
-      return lengthValid && endingValid;
+      return endingValid;
     }).slice(0, 500);
 
     const byLength = {};
@@ -100,7 +99,7 @@ export default function Results({ score, foundWords, allWords, isAnalyzing, prev
           onClick={() => setTab('target')}
           style={{ flex: 1, padding: '8px 5px', textAlign: 'center' }}
         >
-          Целевые {minLength}-{maxLength} ({isAnalyzing ? '...' : missedTargetCount})
+          Целевые ({isAnalyzing ? '...' : missedTargetCount})
         </div>
         <div 
           className={`tab ${tab === 'top' ? 'active' : ''}`}
