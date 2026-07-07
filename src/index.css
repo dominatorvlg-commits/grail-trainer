@@ -567,28 +567,26 @@ input:checked + .slider:before {
 }
 
 /* Analysis Mode Hints */
-.tile.hint-path::after {
-  content: '';
+.hint-badge {
   position: absolute;
-  top: 0; left: 0; right: 0; bottom: 0;
-  border-radius: 8px;
-  background-color: rgba(16, 185, 129, 0.2);
-  pointer-events: none;
+  top: 0;
+  right: 0;
+  width: 45%;
+  height: 45%;
+  background-color: #10b981;
+  clip-path: polygon(100% 0, 100% 100%, 0 0);
+  border-top-right-radius: 8px;
+  z-index: 15;
 }
-.tile.hint-start::after {
-  content: '';
+.hint-badge-text {
   position: absolute;
-  top: 0; left: 0; right: 0; bottom: 0;
-  border-radius: 8px;
-  box-shadow: inset 0 0 0 3px #10b981;
-  background-color: rgba(16, 185, 129, 0.3);
-  pointer-events: none;
-  animation: pulseHint 2s infinite;
-}
-@keyframes pulseHint {
-  0% { box-shadow: inset 0 0 0 3px #10b981; }
-  50% { box-shadow: inset 0 0 0 3px #34d399, inset 0 0 15px #34d399; }
-  100% { box-shadow: inset 0 0 0 3px #10b981; }
+  top: 2px;
+  right: 4px;
+  font-size: clamp(8px, 3vw, 14px);
+  color: white;
+  font-weight: 800;
+  z-index: 16;
+  line-height: 1;
 }
 .hint-svg-path {
   stroke: rgba(16, 185, 129, 0.5);
