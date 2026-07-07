@@ -2,6 +2,24 @@ import React, { useState, useEffect, useRef } from 'react';
 import { generateBoard, isValidWord, calculatePoints, BOARD_SIZE, LAYERS_COUNT } from '../utils/gameLogic';
 import { COMBINATIONS } from '../data/combinations';
 
+const Tile = React.memo(({ r, c, letter, multiplier, isSelected, onDown }) => {
+  const tileClass = `tile-${multiplier}`;
+  return (
+    <div 
+      data-row={r}
+      data-col={c}
+      className={`tile ${tileClass} ${isSelected ? 'selected' : ''}`}
+      onPointerDown={(e) => onDown(e, r, c)}
+    >
+      <span className="letter-text">{letter}</span>
+    </div>
+  );
+}, (prev, next) => {
+  return prev.letter === next.letter &&
+         prev.multiplier === next.multiplier &&
+         prev.isSelected === next.isSelected;
+});
+
 export default function Game({ mode, difficulty, initialBoard, isInfiniteTime, isDuel, onEnd }) {
   const [board, setBoard] = useState([]);
   const [timeLeft, setTimeLeft] = useState(300); // 5 минут
@@ -16,6 +34,7 @@ export default function Game({ mode, difficulty, initialBoard, isInfiniteTime, i
   const [isDragging, setIsDragging] = useState(false);
   const [selectedPath, setSelectedPath] = useState([]); // [{r, c}]
   const boardRef = useRef(null);
+  const boardRectRef = useRef(null);
   
   const initialDragCell = useRef(null);
 
@@ -74,40 +93,54 @@ export default function Game({ mode, difficulty, initialBoard, isInfiniteTime, i
     onEnd(state.score, state.foundWords, state.board);
   };
 
-  const handlePointerDown = (e, r, c) => {
+  const handlePointerDown = React.useCallback((e, r, c) => {
     if (e.isPrimary === false) return;
     if (countdown > 0) return; // Блокируем игру во время отсчета
     e.preventDefault();
     setIsDragging(true);
     setSelectedPath([{ r, c }]);
     initialDragCell.current = { r, c };
-  };
+    
+    if (boardRef.current) {
+      boardRectRef.current = boardRef.current.getBoundingClientRect();
+    }
+  }, [countdown]);
 
   const handlePointerMove = (e) => {
     if (!isDragging || countdown > 0) return;
     if (e.isPrimary === false) return;
+    if (!boardRectRef.current) return;
     
     const clientX = e.clientX;
     const clientY = e.clientY;
     
-    const element = document.elementFromPoint(clientX, clientY);
-    const tile = element ? element.closest('.tile') : null;
+    const rect = boardRectRef.current;
+    const x = clientX - rect.left;
+    const y = clientY - rect.top;
     
-    if (tile && tile.dataset.row) {
-      const rect = tile.getBoundingClientRect();
-      const centerX = rect.left + rect.width / 2;
-      const centerY = rect.top + rect.height / 2;
-      
-      const distance = Math.hypot(clientX - centerX, clientY - centerY);
-      // Уменьшаем хитбокс до 35% (раньше было 45%). Теперь нужно попасть почти в самый центр буквы!
-      const maxRadius = Math.min(rect.width, rect.height) * 0.35;
-      
-      if (distance > maxRadius) return;
-      
-      const r = parseInt(tile.dataset.row);
-      const c = parseInt(tile.dataset.col);
-      
-      setSelectedPath(prev => {
+    const gap = 8;
+    const cellWidth = (rect.width - 4 * gap) / 5;
+    const cellHeight = (rect.height - 4 * gap) / 5;
+    
+    const c = Math.floor(x / (cellWidth + gap));
+    const r = Math.floor(y / (cellHeight + gap));
+    
+    // Проверка границ и попадания в gap
+    if (c < 0 || c >= 5 || r < 0 || r >= 5) return;
+    
+    const startX = c * (cellWidth + gap);
+    const startY = r * (cellHeight + gap);
+    if (x > startX + cellWidth || y > startY + cellHeight) return;
+    
+    const centerX = startX + cellWidth / 2;
+    const centerY = startY + cellHeight / 2;
+    
+    const distance = Math.hypot(x - centerX, y - centerY);
+    const maxRadius = Math.min(cellWidth, cellHeight) * 0.40; // 40% радиус попадания
+    
+    if (distance > maxRadius) return;
+    
+    setSelectedPath(prev => {
         if (prev.length === 0) return prev;
         
         // 1. Умный возврат (Advanced Backtracking)
@@ -156,7 +189,6 @@ export default function Game({ mode, difficulty, initialBoard, isInfiniteTime, i
         
         return prev;
       });
-    }
   };
 
   const handlePointerUp = (e) => {
@@ -276,19 +308,17 @@ export default function Game({ mode, difficulty, initialBoard, isInfiniteTime, i
         <div className="board" ref={boardRef}>
           {board.map((row, r) => 
             row.map((cell, c) => {
-              const isSelected = selectedPath.find(p => p.r === r && p.c === c);
-              const tileClass = `tile-${cell.multiplier}`;
-              
+              const isSelected = !!selectedPath.find(p => p.r === r && p.c === c);
               return (
-                <div 
+                <Tile
                   key={`${r}-${c}`}
-                  data-row={r}
-                  data-col={c}
-                  className={`tile ${tileClass} ${isSelected ? 'selected' : ''}`}
-                  onPointerDown={(e) => handlePointerDown(e, r, c)}
-                >
-                  <span className="letter-text">{cell.layers[cell.currentLayer]}</span>
-                </div>
+                  r={r}
+                  c={c}
+                  letter={cell.layers[cell.currentLayer]}
+                  multiplier={cell.multiplier}
+                  isSelected={isSelected}
+                  onDown={handlePointerDown}
+                />
               )
             })
           )}

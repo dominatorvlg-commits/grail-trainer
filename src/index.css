@@ -143,6 +143,8 @@ body {
   font-size: clamp(26px, 11vw, 46px);
   font-weight: 600;
   border: 1px solid rgba(255,255,255,0.05);
+  will-change: transform;
+  transform: translateZ(0);
 }
 
 .tile:active {
