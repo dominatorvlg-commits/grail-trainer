@@ -16,6 +16,7 @@ function App() {
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [previousResult, setPreviousResult] = useState(null);
   const [boardState, setBoardState] = useState(null); // Сохраняем поле
+  const [analysisWords, setAnalysisWords] = useState([]);
   const [isInfiniteTime, setIsInfiniteTime] = useState(false);
   const [difficulty, setDifficulty] = useState('medium');
   const [theme, setTheme] = useState('dark');
@@ -36,6 +37,7 @@ function App() {
     workerRef.current.onmessage = (e) => {
       if (e.data.type === 'RESULT') {
         setAllWords(e.data.words);
+        setAnalysisWords(e.data.words);
         setIsAnalyzing(false);
       } else if (e.data.type === 'ERROR') {
         console.error('Worker error:', e.data);
@@ -116,11 +118,18 @@ function App() {
       if (workerRef.current) {
         workerRef.current.postMessage({ type: 'FIND_WORDS', board });
       }
+    } else {
+      setAnalysisWords(allWords);
     }
   };
 
   const goMenu = () => {
     setGameState('menu');
+  };
+
+  const handleAnalysis = (wordsToAnalyze) => {
+    setAnalysisWords(wordsToAnalyze);
+    setGameState('analysis');
   };
 
   const toggleTheme = () => {
@@ -140,15 +149,16 @@ function App() {
           previousResult={previousResult}
           isDuel={isDuel}
           boardState={boardState}
+          difficulty={difficulty}
           onRetry={() => startGame(mode, true)}
           onMenu={goMenu}
-          onAnalysis={() => setGameState('analysis')}
+          onAnalysis={handleAnalysis}
         />
       }
       {gameState === 'analysis' && (
         <Analysis 
           initialBoard={boardState} 
-          initialWords={allWords} 
+          initialWords={analysisWords} 
           workerRef={workerRef}
           onExit={() => setGameState('results')} 
         />

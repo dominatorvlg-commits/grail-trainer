@@ -116,7 +116,7 @@ function findAllWordsWorker(board) {
   const validWords = [];
   
   const startTime = Date.now();
-  const TIME_LIMIT = 2000; // 2 секунды максимум
+  const TIME_LIMIT = 2500; // 2.5 секунды максимум
 
   for (let i = 0; i < sortedDict.length; i++) {
     if (Date.now() - startTime > TIME_LIMIT) break;
@@ -126,7 +126,6 @@ function findAllWordsWorker(board) {
       const res = findPathForWord(word);
       if (res && res.points > 0) {
         validWords.push({ word, points: res.points, length: word.length, path: res.path });
-        if (validWords.length >= 100) break; // Нет смысла искать больше 100 пропущенных
       }
     }
   }

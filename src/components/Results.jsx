@@ -1,14 +1,23 @@
-import React, { useState } from 'react';
-import { serializeBoard } from '../utils/gameLogic';
+import React, { useState, useMemo } from 'react';
+import { serializeBoard, getDifficultyConstraints } from '../utils/gameLogic';
 
-export default function Results({ score, foundWords, allWords, isAnalyzing, previousResult, isDuel, boardState, onRetry, onMenu, onAnalysis }) {
-  const [tab, setTab] = useState('current'); // 'current', 'previous', 'missed'
+export default function Results({ score, foundWords, allWords, isAnalyzing, previousResult, isDuel, boardState, difficulty, onRetry, onMenu, onAnalysis }) {
+  const [tab, setTab] = useState('target'); // 'found', 'target', 'top', 'previous'
   const [copied, setCopied] = useState(false);
 
   const currentWords = tab === 'previous' && previousResult ? previousResult.foundWords : foundWords;
   const currentScore = tab === 'previous' && previousResult ? previousResult.score : score;
 
-  const missedWords = allWords.filter(w => !foundWords.find(fw => fw.word === w.word));
+  const missedWords = useMemo(() => {
+    return allWords.filter(w => !foundWords.find(fw => fw.word === w.word));
+  }, [allWords, foundWords]);
+
+  const { targetMissed, topMissed, minLength, maxLength } = useMemo(() => {
+    const { minLength, maxLength } = getDifficultyConstraints(difficulty || 'medium');
+    const target = missedWords.filter(w => w.length >= minLength && w.length <= maxLength).slice(0, 500);
+    const top = [...missedWords].sort((a, b) => b.points - a.points).slice(0, 100);
+    return { targetMissed: target, topMissed: top, minLength, maxLength };
+  }, [missedWords, difficulty]);
 
   const handleShare = () => {
     if (!boardState) return;
@@ -51,18 +60,27 @@ export default function Results({ score, foundWords, allWords, isAnalyzing, prev
         </div>
       </div>
 
-      <div className="tabs" style={{ fontSize: '14px' }}>
+      <div className="tabs" style={{ fontSize: '13px', display: 'flex', gap: '5px' }}>
         <div 
-          className={`tab ${tab !== 'missed' ? 'active' : ''}`}
-          onClick={() => setTab(previousResult ? 'current' : 'current')}
+          className={`tab ${tab === 'found' ? 'active' : ''}`}
+          onClick={() => setTab('found')}
+          style={{ flex: 1, padding: '8px 5px', textAlign: 'center' }}
         >
-          Найденные
+          Найденные ({currentWords.length})
         </div>
         <div 
-          className={`tab ${tab === 'missed' ? 'active' : ''}`}
-          onClick={() => setTab('missed')}
+          className={`tab ${tab === 'target' ? 'active' : ''}`}
+          onClick={() => setTab('target')}
+          style={{ flex: 1, padding: '8px 5px', textAlign: 'center' }}
         >
-          Пропущенные ({missedWords.length})
+          Целевые {minLength}-{maxLength} ({isAnalyzing ? '...' : targetMissed.length})
+        </div>
+        <div 
+          className={`tab ${tab === 'top' ? 'active' : ''}`}
+          onClick={() => setTab('top')}
+          style={{ flex: 1, padding: '8px 5px', textAlign: 'center' }}
+        >
+          Топ-100 ({isAnalyzing ? '...' : topMissed.length})
         </div>
       </div>
 
@@ -75,14 +93,7 @@ export default function Results({ score, foundWords, allWords, isAnalyzing, prev
           </div>
         ) : (
           <>
-            {tab === 'missed' ? (
-              missedWords.map((w, i) => (
-                <div key={i} className="word-item" style={{ opacity: 0.7 }}>
-                  <span>{w.word}</span>
-                  <span>{w.points}</span>
-                </div>
-              ))
-            ) : (
+            {tab === 'found' && (
               currentWords.map((w, i) => (
                 <div key={i} className="word-item">
                   <span style={{ fontWeight: '600' }}>{w.word}</span>
@@ -90,17 +101,52 @@ export default function Results({ score, foundWords, allWords, isAnalyzing, prev
                 </div>
               ))
             )}
-            {(tab === 'missed' ? missedWords : currentWords).length === 0 && (
-              <div style={{ textAlign: 'center', opacity: 0.5, padding: '20px' }}>
-                Ничего нет
-              </div>
+            {tab === 'target' && (
+              targetMissed.map((w, i) => (
+                <div key={i} className="word-item" style={{ opacity: 0.7 }}>
+                  <span>{w.word}</span>
+                  <span>{w.points}</span>
+                </div>
+              ))
+            )}
+            {tab === 'top' && (
+              topMissed.map((w, i) => (
+                <div key={i} className="word-item" style={{ opacity: 0.7 }}>
+                  <span>{w.word}</span>
+                  <span style={{ color: 'var(--accent-gold)' }}>{w.points}</span>
+                </div>
+              ))
+            )}
+            
+            {(tab === 'found' && currentWords.length === 0) && (
+              <div style={{ textAlign: 'center', opacity: 0.5, padding: '20px' }}>Вы ничего не нашли</div>
+            )}
+            {(tab === 'target' && targetMissed.length === 0) && (
+              <div style={{ textAlign: 'center', opacity: 0.5, padding: '20px' }}>Нет пропущенных целевых слов</div>
+            )}
+            {(tab === 'top' && topMissed.length === 0) && (
+              <div style={{ textAlign: 'center', opacity: 0.5, padding: '20px' }}>Нет пропущенных слов</div>
             )}
           </>
         )}
       </div>
 
+      <div style={{ textAlign: 'center', fontSize: '12px', color: 'var(--text-muted)', marginBottom: '10px' }}>
+        {tab === 'found' && 'Будут разобраны ваши найденные слова'}
+        {tab === 'target' && `Будут разобраны ненайденные слова от ${minLength} до ${maxLength} букв`}
+        {tab === 'top' && 'Будут разобраны 100 самых дорогих слов'}
+      </div>
+
       <div style={{ marginTop: 'auto', paddingTop: '10px', paddingBottom: 'calc(10px + env(safe-area-inset-bottom, 0px))' }}>
-        <button className="btn green" style={{ width: '100%', marginBottom: '10px' }} onClick={onAnalysis} disabled={allWords.length === 0 && !isAnalyzing}>
+        <button className="btn green" style={{ width: '100%', marginBottom: '10px' }} 
+          onClick={() => {
+            if (tab === 'found') onAnalysis(currentWords);
+            else if (tab === 'target') onAnalysis(targetMissed);
+            else if (tab === 'top') onAnalysis(topMissed);
+            else onAnalysis(targetMissed);
+          }} 
+          disabled={allWords.length === 0 && !isAnalyzing}
+        >
           Разбор поля
         </button>
         <button className="btn" style={{ width: '100%', marginBottom: '10px', background: 'var(--glass-bg)', color: 'var(--text-main)', border: '1px solid var(--glass-border)' }} onClick={onRetry}>

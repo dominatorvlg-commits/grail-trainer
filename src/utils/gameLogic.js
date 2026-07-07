@@ -142,6 +142,51 @@ const getRandomLetter = (alphabet = "АБВГДЕЖЗИЙКЛМНОПРСТУФ�
   return alphabet[Math.floor(Math.random() * alphabet.length)];
 };
 
+export const getDifficultyConstraints = (difficulty) => {
+  let minLength = 6;
+  let maxLength = 12;
+  let wordsCount = 10;
+  let bonusWeight = 2;
+
+  // Если difficulty это random_diff, мы не можем вернуть точные данные здесь,
+  // поэтому эта функция должна вызываться с разрешенным уровнем сложности.
+  
+  if (difficulty === 'super_easy') {
+    minLength = 6;
+    maxLength = 11;
+    wordsCount = 12;
+    bonusWeight = 20;
+  } else if (difficulty === 'easy') {
+    minLength = 8;
+    maxLength = 13;
+    wordsCount = 15;
+    bonusWeight = 10;
+  } else if (difficulty === 'hard') {
+    minLength = 4;
+    maxLength = 8;
+    wordsCount = 5;
+    bonusWeight = 0;
+  } else if (difficulty === 'classic') {
+    minLength = 7;
+    maxLength = 13;
+    wordsCount = 15;
+    bonusWeight = 5;
+  } else if (difficulty === 'max') {
+    minLength = 10;
+    maxLength = 15; // Учтено: максимальная длина 15 символов
+    wordsCount = 25;
+    bonusWeight = 20;
+  } else {
+    // medium
+    minLength = 6;
+    maxLength = 12;
+    wordsCount = 10;
+    bonusWeight = 2;
+  }
+
+  return { minLength, maxLength, wordsCount, bonusWeight };
+};
+
 export const generateBoard = (mode, difficulty = 'medium') => {
   const board = Array(BOARD_SIZE).fill(null).map(() => 
     Array(BOARD_SIZE).fill(null).map(() => ({
@@ -168,48 +213,14 @@ export const generateBoard = (mode, difficulty = 'medium') => {
   placeMultipliers(1, 'wx2');
 
   let targetWords = [];
-  
-  // Настройки сложности по умолчанию (Средне)
-  let minLength = 6;
-  let maxLength = 12;
-  let wordsCount = 10;
-  let bonusWeight = 2; // Притяжение к бонусам
-
-  // Если сложность случайная, выбираем одну из базовых
   let activeDifficulty = difficulty;
   if (difficulty === 'random_diff') {
     const diffs = ['super_easy', 'easy', 'medium', 'hard', 'classic', 'max'];
     activeDifficulty = diffs[Math.floor(Math.random() * diffs.length)];
   }
 
-  if (activeDifficulty === 'super_easy') {
-    minLength = 6;
-    maxLength = 11;
-    wordsCount = 12;
-    bonusWeight = 20; // Очень сильно тянет к бонусам
-  } else if (activeDifficulty === 'easy') {
-    minLength = 8;
-    maxLength = 13;
-    wordsCount = 15;
-    bonusWeight = 10;
-  } else if (activeDifficulty === 'hard') {
-    minLength = 4;
-    maxLength = 8;
-    wordsCount = 5;
-    bonusWeight = 0; // Полностью игнорирует бонусы
-  } else if (activeDifficulty === 'classic') {
-    // Логика до введения сложностей
-    minLength = 7;
-    maxLength = 13;
-    wordsCount = 15;
-    bonusWeight = 5;
-  } else if (activeDifficulty === 'max') {
-    // Максимальное количество длинных слов
-    minLength = 10;
-    maxLength = 13;
-    wordsCount = 25;
-    bonusWeight = 20; // Очень сильно притягивается к бонусам
-  }
+  const constraints = getDifficultyConstraints(activeDifficulty);
+  let { minLength, maxLength, wordsCount, bonusWeight } = constraints;
 
   let modeEndings = [];
   let forbiddenEndings = [];
