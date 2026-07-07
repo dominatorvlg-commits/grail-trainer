@@ -237,7 +237,7 @@ export default function Game({ mode, difficulty, initialBoard, isInfiniteTime, i
       if (!foundWords.find(w => w.word === wordStr)) {
         const points = calculatePoints(wordStr, nodes);
         setScore(prev => prev + points);
-        setFoundWords(prev => [{ word: wordStr, points }, ...prev]);
+        setFoundWords(prev => [{ word: wordStr, points, path }, ...prev]);
         return true;
       }
     }
