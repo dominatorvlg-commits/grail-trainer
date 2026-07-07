@@ -588,6 +588,9 @@ input:checked + .slider:before {
   font-weight: 800;
   z-index: 16;
 }
+.tile.hint-start {
+  border: 2px dashed #10b981;
+}
 .hint-svg-path {
   stroke: rgba(16, 185, 129, 0.5);
   stroke-width: 4;

@@ -1,13 +1,14 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { calculatePoints, isValidWord, BOARD_SIZE, LAYERS_COUNT } from '../utils/gameLogic';
 
-const Tile = React.memo(({ r, c, letter, multiplier, isSelected, hintTargetLetter, onDown }) => {
+const Tile = React.memo(({ r, c, letter, multiplier, isSelected, hintTargetLetter, isHintStart, onDown }) => {
   const tileClass = `tile-${multiplier}`;
+  const extraClass = `${isSelected ? 'selected' : ''} ${isHintStart ? 'hint-start' : ''}`;
   return (
     <div 
       data-row={r}
       data-col={c}
-      className={`tile ${tileClass} ${isSelected ? 'selected' : ''}`}
+      className={`tile ${tileClass} ${extraClass}`}
       onPointerDown={(e) => onDown(e, r, c)}
     >
       <span className="letter-text">{letter}</span>
@@ -22,7 +23,8 @@ const Tile = React.memo(({ r, c, letter, multiplier, isSelected, hintTargetLette
   return prev.letter === next.letter &&
          prev.multiplier === next.multiplier &&
          prev.isSelected === next.isSelected &&
-         prev.hintTargetLetter === next.hintTargetLetter;
+         prev.hintTargetLetter === next.hintTargetLetter &&
+         prev.isHintStart === next.isHintStart;
 });
 
 export default function Analysis({ initialBoard, initialWords, onExit, workerRef }) {
@@ -254,6 +256,7 @@ export default function Analysis({ initialBoard, initialWords, onExit, workerRef
               const isSelected = !!selectedPath.find(p => p.r === r && p.c === c);
               const hintIndex = hintPath?.findIndex(p => p.r === r && p.c === c);
               const hintTargetLetter = (hintIndex !== undefined && hintIndex !== -1 && currentHint) ? currentHint.word[hintIndex] : null;
+              const isHintStart = hintIndex === 0;
               
               return (
                 <Tile
@@ -264,6 +267,7 @@ export default function Analysis({ initialBoard, initialWords, onExit, workerRef
                   multiplier={cell.multiplier}
                   isSelected={isSelected}
                   hintTargetLetter={hintTargetLetter}
+                  isHintStart={isHintStart}
                   onDown={handlePointerDown}
                 />
               )
