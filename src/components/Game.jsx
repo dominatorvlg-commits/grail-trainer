@@ -20,7 +20,7 @@ const Tile = React.memo(({ r, c, letter, multiplier, isSelected, onDown }) => {
          prev.isSelected === next.isSelected;
 });
 
-export default function Game({ mode, difficulty, initialBoard, isInfiniteTime, isDuel, onEnd }) {
+export default function Game({ mode, difficulty, initialBoard, isInfiniteTime, isDuel, onEnd, onBoardReady }) {
   const [board, setBoard] = useState([]);
   const [timeLeft, setTimeLeft] = useState(300); // 5 минут
   const [score, setScore] = useState(0);
@@ -39,14 +39,16 @@ export default function Game({ mode, difficulty, initialBoard, isInfiniteTime, i
   const initialDragCell = useRef(null);
 
   useEffect(() => {
+    let finalBoard;
     if (initialBoard) {
-      const restoredBoard = initialBoard.map(row => 
+      finalBoard = initialBoard.map(row => 
         row.map(cell => ({ ...cell, currentLayer: 0 }))
       );
-      setBoard(restoredBoard);
     } else {
-      setBoard(generateBoard(mode, difficulty));
+      finalBoard = generateBoard(mode, difficulty);
     }
+    setBoard(finalBoard);
+    if (onBoardReady) onBoardReady(finalBoard);
   }, [mode, difficulty, initialBoard]);
 
   useEffect(() => {
@@ -284,7 +286,9 @@ export default function Game({ mode, difficulty, initialBoard, isInfiniteTime, i
           ) : (
             <>
               <span>ВРЕМЯ</span>
-              <span>{Math.floor(timeLeft / 60)}:{(timeLeft % 60).toString().padStart(2, '0')}</span>
+              <span className={timeLeft <= 15 ? 'timer-blink' : ''} style={timeLeft <= 15 ? { color: '#ef4444' } : {}}>
+                {Math.floor(timeLeft / 60)}:{(timeLeft % 60).toString().padStart(2, '0')}
+              </span>
             </>
           )}
         </div>

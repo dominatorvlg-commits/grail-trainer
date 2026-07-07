@@ -3,6 +3,7 @@ import { serializeBoard, getDifficultyConstraints, getModeEndings } from '../uti
 
 export default function Results({ score, foundWords, allWords, isAnalyzing, previousResult, isDuel, boardState, difficulty, mode, onRetry, onMenu, onAnalysis }) {
   const [tab, setTab] = useState('target'); // 'found', 'target', 'top', 'previous'
+  const [selectedLength, setSelectedLength] = useState(null);
   const [copied, setCopied] = useState(false);
 
   const currentWords = tab === 'previous' && previousResult ? previousResult.foundWords : foundWords;
@@ -12,20 +13,38 @@ export default function Results({ score, foundWords, allWords, isAnalyzing, prev
     return allWords.filter(w => !foundWords.find(fw => fw.word === w.word));
   }, [allWords, foundWords]);
 
-  const { targetMissed, topMissed, minLength, maxLength } = useMemo(() => {
+  const { targetWordsAll, targetWordsByLength, targetLengths, topMissed, minLength, maxLength } = useMemo(() => {
     const { minLength, maxLength } = getDifficultyConstraints(difficulty || 'medium');
     const modeEndings = getModeEndings(mode);
     
-    const target = missedWords.filter(w => {
+    // Целевые слова (все: и найденные, и пропущенные)
+    const targetAll = allWords.filter(w => {
       const lengthValid = w.length >= minLength && w.length <= maxLength;
-      // Если окончания известны (не пустой массив), проверяем их. Иначе пускаем все.
       const endingValid = modeEndings.length > 0 ? modeEndings.some(ending => w.word.toUpperCase().endsWith(ending)) : true;
       return lengthValid && endingValid;
     }).slice(0, 500);
+
+    const byLength = {};
+    targetAll.forEach(w => {
+      if (!byLength[w.length]) byLength[w.length] = [];
+      byLength[w.length].push(w);
+    });
+    
+    const lengths = Object.keys(byLength).map(Number).sort((a, b) => a - b);
     
     const top = [...missedWords].sort((a, b) => b.points - a.points).slice(0, 100);
-    return { targetMissed: target, topMissed: top, minLength, maxLength };
-  }, [missedWords, difficulty, mode]);
+    return { targetWordsAll: targetAll, targetWordsByLength: byLength, targetLengths: lengths, topMissed: top, minLength, maxLength };
+  }, [allWords, missedWords, difficulty, mode]);
+
+  React.useEffect(() => {
+    if (tab === 'target' && targetLengths.length > 0 && (!selectedLength || !targetLengths.includes(selectedLength))) {
+      setSelectedLength(targetLengths[0]);
+    }
+  }, [tab, targetLengths, selectedLength]);
+
+  const displayedTargetWords = selectedLength ? (targetWordsByLength[selectedLength] || []) : [];
+  const missedDisplayedTargetWords = displayedTargetWords.filter(w => !foundWords.find(fw => fw.word === w.word));
+  const missedTargetCount = targetWordsAll.filter(w => !foundWords.find(fw => fw.word === w.word)).length;
 
   const handleShare = () => {
     if (!boardState) return;
@@ -81,7 +100,7 @@ export default function Results({ score, foundWords, allWords, isAnalyzing, prev
           onClick={() => setTab('target')}
           style={{ flex: 1, padding: '8px 5px', textAlign: 'center' }}
         >
-          Целевые {minLength}-{maxLength} ({isAnalyzing ? '...' : targetMissed.length})
+          Целевые {minLength}-{maxLength} ({isAnalyzing ? '...' : missedTargetCount})
         </div>
         <div 
           className={`tab ${tab === 'top' ? 'active' : ''}`}
@@ -91,6 +110,36 @@ export default function Results({ score, foundWords, allWords, isAnalyzing, prev
           Топ-100 ({isAnalyzing ? '...' : topMissed.length})
         </div>
       </div>
+
+      {tab === 'target' && targetLengths.length > 0 && (
+        <div style={{ display: 'flex', gap: '8px', overflowX: 'auto', padding: '10px 20px 0 20px', scrollbarWidth: 'none' }}>
+          {targetLengths.map(len => {
+            const wordsOfLen = targetWordsByLength[len];
+            const foundOfLen = wordsOfLen.filter(w => foundWords.find(fw => fw.word === w.word)).length;
+            const allOfLen = wordsOfLen.length;
+            const isCompleted = foundOfLen === allOfLen;
+            return (
+              <div 
+                key={len}
+                onClick={() => setSelectedLength(len)}
+                style={{
+                  padding: '6px 12px',
+                  borderRadius: '16px',
+                  fontSize: '12px',
+                  fontWeight: 'bold',
+                  whiteSpace: 'nowrap',
+                  cursor: 'pointer',
+                  backgroundColor: selectedLength === len ? 'var(--accent-gold)' : (isCompleted ? 'rgba(16, 185, 129, 0.2)' : 'var(--glass-bg)'),
+                  color: selectedLength === len ? '#000' : (isCompleted ? '#10b981' : 'var(--text-main)'),
+                  border: `1px solid ${isCompleted ? '#10b981' : 'var(--glass-border)'}`
+                }}
+              >
+                {len} букв ({foundOfLen}/{allOfLen})
+              </div>
+            );
+          })}
+        </div>
+      )}
 
       <div className="word-list">
         {isAnalyzing ? (
@@ -110,12 +159,23 @@ export default function Results({ score, foundWords, allWords, isAnalyzing, prev
               ))
             )}
             {tab === 'target' && (
-              targetMissed.map((w, i) => (
-                <div key={i} className="word-item" style={{ opacity: 0.7 }}>
-                  <span>{w.word}</span>
-                  <span>{w.points}</span>
-                </div>
-              ))
+              displayedTargetWords.map((w, i) => {
+                const isFound = foundWords.find(fw => fw.word === w.word);
+                return (
+                  <div key={i} className="word-item" style={{ 
+                    opacity: isFound ? 1 : 0.7, 
+                    borderLeft: isFound ? '3px solid #10b981' : '3px solid transparent',
+                    backgroundColor: isFound ? 'rgba(16, 185, 129, 0.1)' : 'transparent'
+                  }}>
+                    <span style={{ fontWeight: isFound ? 'bold' : 'normal', color: isFound ? '#10b981' : 'var(--text-main)' }}>
+                      {w.word}
+                    </span>
+                    <span style={{ color: isFound ? '#10b981' : 'var(--text-muted)' }}>
+                      {isFound ? '✓ Найдено' : w.points}
+                    </span>
+                  </div>
+                );
+              })
             )}
             {tab === 'top' && (
               topMissed.map((w, i) => (
@@ -129,8 +189,8 @@ export default function Results({ score, foundWords, allWords, isAnalyzing, prev
             {(tab === 'found' && currentWords.length === 0) && (
               <div style={{ textAlign: 'center', opacity: 0.5, padding: '20px' }}>Вы ничего не нашли</div>
             )}
-            {(tab === 'target' && targetMissed.length === 0) && (
-              <div style={{ textAlign: 'center', opacity: 0.5, padding: '20px' }}>Нет пропущенных целевых слов</div>
+            {(tab === 'target' && displayedTargetWords.length === 0) && (
+              <div style={{ textAlign: 'center', opacity: 0.5, padding: '20px' }}>Нет целевых слов</div>
             )}
             {(tab === 'top' && topMissed.length === 0) && (
               <div style={{ textAlign: 'center', opacity: 0.5, padding: '20px' }}>Нет пропущенных слов</div>
@@ -141,7 +201,7 @@ export default function Results({ score, foundWords, allWords, isAnalyzing, prev
 
       <div style={{ textAlign: 'center', fontSize: '12px', color: 'var(--text-muted)', marginBottom: '10px' }}>
         {tab === 'found' && 'Будут разобраны ваши найденные слова'}
-        {tab === 'target' && `Будут разобраны ненайденные слова от ${minLength} до ${maxLength} букв`}
+        {tab === 'target' && `Будут разобраны ненайденные слова из ${selectedLength} букв`}
         {tab === 'top' && 'Будут разобраны 100 самых дорогих слов'}
       </div>
 
@@ -149,11 +209,11 @@ export default function Results({ score, foundWords, allWords, isAnalyzing, prev
         <button className="btn green" style={{ width: '100%', marginBottom: '10px' }} 
           onClick={() => {
             if (tab === 'found') onAnalysis(currentWords);
-            else if (tab === 'target') onAnalysis(targetMissed);
+            else if (tab === 'target') onAnalysis(missedDisplayedTargetWords);
             else if (tab === 'top') onAnalysis(topMissed);
-            else onAnalysis(targetMissed);
+            else onAnalysis(missedDisplayedTargetWords);
           }} 
-          disabled={allWords.length === 0 && !isAnalyzing}
+          disabled={(allWords.length === 0 && !isAnalyzing) || (tab === 'target' && missedDisplayedTargetWords.length === 0)}
         >
           Разбор поля
         </button>

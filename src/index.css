@@ -601,3 +601,10 @@ input:checked + .slider:before {
 @keyframes dashMove {
   to { stroke-dashoffset: -16; }
 }
+
+.timer-blink {
+  animation: blink 1s step-end infinite;
+}
+@keyframes blink {
+  50% { opacity: 0; }
+}

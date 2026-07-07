@@ -111,15 +111,15 @@ function App() {
     setFoundWords(words);
     setBoardState(board);
     setGameState('results');
-    
-    // Если allWords пустой (то есть это не рестарт старого поля), запускаем анализ
+  };
+
+  const handleBoardReady = (board) => {
+    // Если allWords пустой, запускаем поиск в фоне
     if (allWords.length === 0) {
-      setIsAnalyzing(true);
+      setIsAnalyzing(true); // Флаг, что мы еще ищем
       if (workerRef.current) {
         workerRef.current.postMessage({ type: 'FIND_WORDS', board });
       }
-    } else {
-      setAnalysisWords(allWords);
     }
   };
 
@@ -139,7 +139,7 @@ function App() {
   return (
     <div className="app-container" data-theme={theme}>
       {gameState === 'menu' && <Menu onStart={startGame} theme={theme} onToggleTheme={toggleTheme} />}
-      {gameState === 'game' && <Game mode={mode} difficulty={difficulty} initialBoard={boardState} isInfiniteTime={isInfiniteTime} isDuel={isDuel} onEnd={endGame} />}
+      {gameState === 'game' && <Game mode={mode} difficulty={difficulty} initialBoard={boardState} isInfiniteTime={isInfiniteTime} isDuel={isDuel} onEnd={endGame} onBoardReady={handleBoardReady} />}
       {gameState === 'results' && 
         <Results 
           score={score} 
