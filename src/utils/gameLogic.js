@@ -414,7 +414,7 @@ export const generateBoard = (mode, difficulty = 'medium') => {
       return pathNodes;
     };
 
-    for (let attempts = 0; attempts < 100; attempts++) {
+    for (let attempts = 0; attempts < 1000; attempts++) {
       const pathNodes = tryPath();
       if (pathNodes) {
         for (let i = 0; i < word.length; i++) {
@@ -445,11 +445,9 @@ export const generateBoard = (mode, difficulty = 'medium') => {
         group.stems.forEach((stem, index) => {
           if (stem.length > 0) {
              const reversedStem = stem.split('').reverse().join('');
-             const success = embedWordBase(reversedStem, anchorCell, endingPath);
-             if (!success) {
-                // Если не удалось прицепить корень к якорю, просто размещаем все слово целиком где-нибудь
-                embedWordBase(group.fullWords[index], null, endingPath);
-             }
+             // Пытаемся пристыковать корень. Если не вышло (даже за 1000 попыток), 
+             // мы просто пропускаем это слово, чтобы не плодить дубликаты окончаний и не вызывать взрыв путей.
+             embedWordBase(reversedStem, anchorCell, endingPath);
           }
         });
       } else {
