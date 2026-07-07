@@ -214,35 +214,41 @@ export const generateBoard = (mode, difficulty = 'medium') => {
   let modeEndings = [];
   let forbiddenEndings = [];
   let restrictedAlphabet = "АБВГДЕЖЗИЙКЛМНОПРСТУФХЦЧШЩЪЫЬЭЮЯ";
+  let activeMode = mode;
 
-  if (mode !== 'random') {
-    if (COMBINATIONS[mode]) {
-      modeEndings = COMBINATIONS[mode].endings;
-      
-      // Сбор всех окончаний для исключения запрещенных связок
-      const allEndings = [];
-      Object.values(COMBINATIONS).forEach(cat => {
-        allEndings.push(...cat.endings);
-      });
-      // Оставляем в forbiddenEndings только те, которых нет в modeEndings
-      forbiddenEndings = allEndings.filter(e => !modeEndings.includes(e));
-      
-      // Исключаем буквы Ь и Й из случайного пула, если они не нужны для текущих окончаний, чтобы уменьшить случайные комбинации
-      if (!modeEndings.some(e => e.includes('Ь'))) {
-        restrictedAlphabet = restrictedAlphabet.replace('Ь', '');
-      }
-      if (!modeEndings.some(e => e.includes('Й'))) {
-        restrictedAlphabet = restrictedAlphabet.replace('Й', '');
-      }
-    } else if (mode === 'mixed') {
-      Object.values(COMBINATIONS).forEach(cat => {
-        modeEndings.push(...cat.endings);
-      });
-      // В смешанном режиме ничего не запрещаем
+  if (activeMode === 'random') {
+    const modesList = Object.keys(COMBINATIONS);
+    activeMode = modesList[Math.floor(Math.random() * modesList.length)];
+  }
+
+  const allEndings = [];
+  Object.values(COMBINATIONS).forEach(cat => {
+    allEndings.push(...cat.endings);
+  });
+
+  if (activeMode === 'mixed') {
+    Object.values(COMBINATIONS).forEach(cat => {
+      const randomEnding = cat.endings[Math.floor(Math.random() * cat.endings.length)];
+      modeEndings.push(randomEnding);
+    });
+    forbiddenEndings = allEndings.filter(e => !modeEndings.includes(e));
+  } else if (COMBINATIONS[activeMode]) {
+    modeEndings = COMBINATIONS[activeMode].endings;
+    forbiddenEndings = allEndings.filter(e => !modeEndings.includes(e));
+  }
+
+  // Исключаем буквы Ь и Й из случайного пула, если они не нужны для текущих окончаний, чтобы уменьшить случайные комбинации
+  if (modeEndings.length > 0) {
+    if (!modeEndings.some(e => e.includes('Ь'))) {
+      restrictedAlphabet = restrictedAlphabet.replace('Ь', '');
     }
+    if (!modeEndings.some(e => e.includes('Й'))) {
+      restrictedAlphabet = restrictedAlphabet.replace('Й', '');
+    }
+  }
 
-    if (modeEndings.length > 0) {
-      const candidateWords = [];
+  if (modeEndings.length > 0) {
+    const candidateWords = [];
       const wordSource = activeDifficulty === 'super_easy' ? COMMON_WORDS_SET : DICTIONARY_SET;
       
       wordSource.forEach(word => {
@@ -262,20 +268,6 @@ export const generateBoard = (mode, difficulty = 'medium') => {
       
       candidateWords.sort(() => Math.random() - 0.5);
       targetWords = candidateWords.slice(0, wordsCount);
-    }
-  } else {
-    // В случайном режиме просто берем слова без ограничений по окончаниям
-    const candidateWords = [];
-    const wordSource = activeDifficulty === 'super_easy' ? COMMON_WORDS_SET : DICTIONARY_SET;
-    
-    wordSource.forEach(word => {
-      if (word.length >= minLength && word.length <= maxLength) {
-        candidateWords.push(word);
-      }
-    });
-    
-    candidateWords.sort(() => Math.random() - 0.5);
-    targetWords = candidateWords.slice(0, wordsCount);
   }
 
   // Функция поиска случайного пути для слова
@@ -342,7 +334,7 @@ export const generateBoard = (mode, difficulty = 'medium') => {
 
   let isClean = false;
   let attempts = 0;
-  const maxAttempts = mode !== 'random' && mode !== 'mixed' ? 200 : 50;
+  const maxAttempts = 200;
 
   while (!isClean && attempts < maxAttempts) {
     attempts++;
@@ -360,7 +352,7 @@ export const generateBoard = (mode, difficulty = 'medium') => {
           const cell = board[r][c];
           for (let l = 0; l < LAYERS_COUNT; l++) {
             if (cell.layers[l] === null) {
-              cell.layers[l] = getRandomLetter(mode !== 'random' && mode !== 'mixed' ? restrictedAlphabet : undefined);
+              cell.layers[l] = getRandomLetter(restrictedAlphabet);
             }
           }
       }
@@ -370,7 +362,7 @@ export const generateBoard = (mode, difficulty = 'medium') => {
     let isValid = !hasAccidentalLongWords(board);
     
     // Проверяем, не появились ли запрещенные случайные связки
-    if (isValid && mode !== 'random' && mode !== 'mixed' && forbiddenEndings.length > 0) {
+    if (isValid && forbiddenEndings.length > 0) {
       if (hasForbiddenCombinations(board, forbiddenEndings)) {
         isValid = false;
       }
