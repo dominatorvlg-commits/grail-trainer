@@ -154,22 +154,22 @@ export const getDifficultyConstraints = (difficulty) => {
   if (difficulty === 'super_easy') {
     minLength = 6;
     maxLength = 11;
-    wordsCount = 12;
+    wordsCount = 15;
     bonusWeight = 20;
   } else if (difficulty === 'easy') {
     minLength = 8;
     maxLength = 13;
-    wordsCount = 15;
+    wordsCount = 20;
     bonusWeight = 10;
   } else if (difficulty === 'hard') {
     minLength = 4;
     maxLength = 8;
-    wordsCount = 5;
+    wordsCount = 10;
     bonusWeight = 0;
   } else if (difficulty === 'classic') {
     minLength = 7;
     maxLength = 13;
-    wordsCount = 15;
+    wordsCount = 20;
     bonusWeight = 5;
   } else if (difficulty === 'max') {
     minLength = 10;
@@ -180,7 +180,7 @@ export const getDifficultyConstraints = (difficulty) => {
     // medium
     minLength = 6;
     maxLength = 12;
-    wordsCount = 10;
+    wordsCount = 15;
     bonusWeight = 2;
   }
 
@@ -293,6 +293,17 @@ export const generateBoard = (mode, difficulty = 'medium') => {
           }
         });
       }
+
+      // Если слов всё ещё слишком мало (особенно в hard режиме), смягчаем требования к длине (игнорируем maxLength)
+      if (candidateWords.length < wordsCount) {
+        DICTIONARY_SET.forEach(word => {
+          if (word.length >= minLength && modeEndings.some(ending => word.endsWith(ending))) {
+            if (!candidateWords.includes(word)) {
+               candidateWords.push(word);
+            }
+          }
+        });
+      }
       
       candidateWords.sort(() => Math.random() - 0.5);
       targetWords = candidateWords.slice(0, wordsCount);
@@ -315,10 +326,14 @@ export const generateBoard = (mode, difficulty = 'medium') => {
     wordGroups[key].fullWords.push(word);
   });
 
-  const embedWordBase = (word, forceAnchor = null) => {
+  const embedWordBase = (word, forceAnchor = null, forbiddenCells = []) => {
     const tryPath = () => {
       const pathNodes = [];
       const visited = new Set();
+
+      if (forbiddenCells && forbiddenCells.length > 0) {
+        forbiddenCells.forEach(c => visited.add(`${c.r},${c.c}`));
+      }
       
       let possibleStarts = [];
       let emptyStarts = [];
@@ -329,15 +344,16 @@ export const generateBoard = (mode, difficulty = 'medium') => {
              if(dr===0 && dc===0) continue;
              const nr = forceAnchor.r + dr, nc = forceAnchor.c + dc;
              if(nr>=0 && nr<BOARD_SIZE && nc>=0 && nc<BOARD_SIZE) {
+               if(visited.has(`${nr},${nc}`)) continue;
                if(board[nr][nc].layers.includes(word[0])) possibleStarts.push({r: nr, c: nc});
                if(board[nr][nc].layers.includes(null)) emptyStarts.push({r: nr, c: nc});
              }
            }
          }
-         visited.add(`${forceAnchor.r},${forceAnchor.c}`); 
       } else {
         for(let rr=0; rr<BOARD_SIZE; rr++){
           for(let cc=0; cc<BOARD_SIZE; cc++){
+            if(visited.has(`${rr},${cc}`)) continue;
             if(board[rr][cc].layers.includes(word[0])) possibleStarts.push({r: rr, c: cc});
             if(board[rr][cc].layers.includes(null)) emptyStarts.push({r: rr, c: cc});
           }
@@ -429,10 +445,10 @@ export const generateBoard = (mode, difficulty = 'medium') => {
         group.stems.forEach((stem, index) => {
           if (stem.length > 0) {
              const reversedStem = stem.split('').reverse().join('');
-             const success = embedWordBase(reversedStem, anchorCell);
+             const success = embedWordBase(reversedStem, anchorCell, endingPath);
              if (!success) {
                 // Если не удалось прицепить корень к якорю, просто размещаем все слово целиком где-нибудь
-                embedWordBase(group.fullWords[index]);
+                embedWordBase(group.fullWords[index], null, endingPath);
              }
           }
         });
