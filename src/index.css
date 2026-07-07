@@ -571,22 +571,22 @@ input:checked + .slider:before {
   position: absolute;
   top: 0;
   right: 0;
-  width: 45%;
-  height: 45%;
+  width: 35%;
+  height: 35%;
   background-color: #10b981;
-  clip-path: polygon(100% 0, 100% 100%, 0 0);
   border-top-right-radius: 8px;
+  border-bottom-left-radius: 6px;
   z-index: 15;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  box-shadow: -2px 2px 4px rgba(0,0,0,0.3);
 }
 .hint-badge-text {
-  position: absolute;
-  top: 2px;
-  right: 4px;
-  font-size: clamp(8px, 3vw, 14px);
+  font-size: clamp(10px, 3.5vw, 16px);
   color: white;
   font-weight: 800;
   z-index: 16;
-  line-height: 1;
 }
 .hint-svg-path {
   stroke: rgba(16, 185, 129, 0.5);
