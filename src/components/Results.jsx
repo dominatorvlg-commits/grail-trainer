@@ -119,20 +119,22 @@ export default function Results({ score, foundWords, allWords, isAnalyzing, prev
             const isCompleted = foundOfLen === allOfLen;
             return (
               <div 
-                key={len}
-                onClick={() => setSelectedLength(len)}
-                style={{
-                  padding: '6px 12px',
-                  borderRadius: '16px',
-                  fontSize: '12px',
-                  fontWeight: 'bold',
-                  whiteSpace: 'nowrap',
-                  cursor: 'pointer',
-                  backgroundColor: selectedLength === len ? 'var(--accent-gold)' : (isCompleted ? 'rgba(16, 185, 129, 0.2)' : 'var(--glass-bg)'),
-                  color: selectedLength === len ? '#000' : (isCompleted ? '#10b981' : 'var(--text-main)'),
-                  border: `1px solid ${isCompleted ? '#10b981' : 'var(--glass-border)'}`
-                }}
-              >
+                  key={len}
+                  onClick={() => setSelectedLength(len)}
+                  style={{
+                    padding: '8px 16px',
+                    borderRadius: '20px',
+                    fontSize: '14px',
+                    fontWeight: 'bold',
+                    whiteSpace: 'nowrap',
+                    cursor: 'pointer',
+                    backgroundColor: selectedLength === len ? 'var(--accent-gold)' : (isCompleted ? 'rgba(16, 185, 129, 0.2)' : 'rgba(255, 255, 255, 0.15)'),
+                    color: selectedLength === len ? '#000' : (isCompleted ? '#10b981' : '#fff'),
+                    border: `1px solid ${isCompleted ? '#10b981' : 'rgba(255, 255, 255, 0.3)'}`,
+                    boxShadow: selectedLength === len ? '0 0 10px rgba(251, 191, 36, 0.5)' : 'none',
+                    transition: 'all 0.2s'
+                  }}
+                >
                 {len} букв ({foundOfLen}/{allOfLen})
               </div>
             );
