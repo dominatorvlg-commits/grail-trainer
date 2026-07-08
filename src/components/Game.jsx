@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { generateBoard, isValidWord, calculatePoints, BOARD_SIZE, LAYERS_COUNT } from '../utils/gameLogic';
 import { COMBINATIONS } from '../data/combinations';
+import { soundManager } from '../utils/SoundManager';
 
 const Tile = React.memo(({ r, c, letter, multiplier, isSelected, onDown }) => {
   const tileClass = `tile-${multiplier}`;
@@ -72,6 +73,9 @@ export default function Game({ mode, difficulty, initialBoard, isInfiniteTime, i
     if (!isInfiniteTime && countdown === 0) {
       const timer = setInterval(() => {
         setTimeLeft(prev => {
+          if (prev <= 10 && prev > 1) {
+            soundManager.playTick();
+          }
           if (prev <= 1) {
             clearInterval(timer);
             finishGame();
@@ -102,6 +106,9 @@ export default function Game({ mode, difficulty, initialBoard, isInfiniteTime, i
     setIsDragging(true);
     setSelectedPath([{ r, c }]);
     initialDragCell.current = { r, c };
+    
+    soundManager.resetSwipe();
+    soundManager.playSwipe();
     
     if (boardRef.current) {
       boardRectRef.current = boardRef.current.getBoundingClientRect();
@@ -185,6 +192,7 @@ export default function Game({ mode, difficulty, initialBoard, isInfiniteTime, i
           }
           
           if (isValidJump) {
+            soundManager.playSwipe();
             return [...prev, ...newPathSegments];
           }
         }
@@ -199,7 +207,10 @@ export default function Game({ mode, difficulty, initialBoard, isInfiniteTime, i
     setIsDragging(false);
     
     if (selectedPath.length > 1) {
-      submitWord(selectedPath);
+      const isWordValid = submitWord(selectedPath);
+      if (!isWordValid) {
+        soundManager.playError();
+      }
       setBoard(prev => {
         const newBoard = prev.map(row => [...row]);
         selectedPath.forEach(p => {
@@ -240,6 +251,7 @@ export default function Game({ mode, difficulty, initialBoard, isInfiniteTime, i
         const points = calculatePoints(wordStr, nodes);
         setScore(prev => prev + points);
         setFoundWords(prev => [{ word: wordStr, points, path }, ...prev]);
+        soundManager.playSuccess(points);
         return true;
       }
     }
@@ -272,6 +284,21 @@ export default function Game({ mode, difficulty, initialBoard, isInfiniteTime, i
           <span>СЧЕТ</span>
           <span>{score}</span>
         </div>
+        <button 
+          onClick={() => {
+            soundManager.playMenuClick();
+            soundManager.toggleMute();
+            // Force re-render to update icon (simple hack since it's a small component)
+            setScore(s => s);
+          }}
+          style={{
+            background: 'none', border: 'none', fontSize: '20px', cursor: 'pointer',
+            color: soundManager.isMuted ? 'var(--text-muted)' : 'var(--text-main)', padding: '0 5px'
+          }}
+          title={soundManager.isMuted ? "Включить звук" : "Выключить звук"}
+        >
+          {soundManager.isMuted ? '🔇' : '🔊'}
+        </button>
         <div className="header-stat">
           {isInfiniteTime ? (
             <button 
