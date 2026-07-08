@@ -5,7 +5,7 @@ const BOARD_SIZE = 5;
 // Сортируем словарь от длинных слов к коротким, чтобы находить самые жирные пропущенные
 const sortedDict = dictionary
   .map(w => w.toUpperCase())
-  .filter(w => w.length >= 4 && w.length <= 15 && !w.includes('-') && !w.includes(' '))
+  .filter(w => w.length >= 2 && w.length <= 15 && !w.includes('-') && !w.includes(' '))
   .sort((a, b) => b.length - a.length);
 
 const calculatePoints = (wordStr, pathNodes) => {

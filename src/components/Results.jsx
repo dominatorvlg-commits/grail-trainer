@@ -140,12 +140,17 @@ export default function Results({ score, foundWords, allWords, isAnalyzing, prev
         ) : (
           <>
             {tab === 'found' && (
-              currentWords.map((w, i) => (
+              currentWords.slice(0, 1000).map((w, i) => (
                 <div key={i} className="word-item">
                   <span style={{ fontWeight: '600' }}>{w.word}</span>
                   <span style={{ color: 'var(--accent-gold)' }}>+{w.points}</span>
                 </div>
               ))
+            )}
+            {tab === 'found' && currentWords.length > 1000 && (
+              <div style={{ textAlign: 'center', padding: '10px', color: 'var(--text-muted)' }}>
+                ...и еще {currentWords.length - 1000} слов
+              </div>
             )}
             {tab === 'target' && (
               displayedTargetWords.map((w, i) => {
