@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { calculatePoints, isValidWord, BOARD_SIZE, LAYERS_COUNT } from '../utils/gameLogic';
+import { soundManager } from '../utils/SoundManager';
 
 const Tile = React.memo(({ r, c, letter, multiplier, isSelected, hintTargetLetter, isHintStart, onDown }) => {
   const tileClass = `tile-${multiplier}`;
@@ -66,6 +67,9 @@ export default function Analysis({ initialBoard, initialWords, onExit, workerRef
     setIsDragging(true);
     initialDragCell.current = { r, c };
     setSelectedPath([{ r, c }]);
+    
+    soundManager.resetSwipe();
+    soundManager.playSwipe();
     
     if (boardRef.current) {
       boardRectRef.current = boardRef.current.getBoundingClientRect();
@@ -134,7 +138,10 @@ export default function Analysis({ initialBoard, initialWords, onExit, workerRef
             }
             newPathSegments.push({ r: intermediateR, c: intermediateC });
           }
-          if (isValidJump) return [...prev, ...newPathSegments];
+          if (isValidJump) {
+            soundManager.playSwipe();
+            return [...prev, ...newPathSegments];
+          }
         }
         return prev;
       });
@@ -166,16 +173,19 @@ export default function Analysis({ initialBoard, initialWords, onExit, workerRef
     }
     
     const currentHint = words[wordIndex];
-    if (selectedPath.length > 0 && currentHint && currentHint.path) {
+    if (selectedPath.length > 1 && currentHint && currentHint.path) {
       const currentWordOnHintPath = currentHint.path.map(p => {
         const cell = newBoard[p.r][p.c];
         return cell.layers[cell.currentLayer];
       }).join('');
       
       if (currentWordOnHintPath === currentHint.word) {
+        soundManager.playSuccess(currentHint.points);
         if (wordIndex < words.length - 1) {
           setWordIndex(wordIndex + 1);
         }
+      } else {
+        soundManager.playError();
       }
     }
     
@@ -206,7 +216,7 @@ export default function Analysis({ initialBoard, initialWords, onExit, workerRef
       
       <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '15px', marginBottom: '10px' }}>
         <button 
-          onClick={() => setWordIndex(i => Math.max(0, i - 1))}
+          onClick={() => { soundManager.playMenuClick(); setWordIndex(i => Math.max(0, i - 1)); }}
           disabled={wordIndex === 0 || isCalculating}
           style={{ background: 'var(--glass-bg)', border: '1px solid var(--glass-border)', borderRadius: '50%', width: '40px', height: '40px', color: 'var(--text-main)', fontSize: '20px', display: 'flex', justifyContent: 'center', alignItems: 'center', opacity: wordIndex === 0 ? 0.3 : 1 }}
         >
@@ -231,7 +241,7 @@ export default function Analysis({ initialBoard, initialWords, onExit, workerRef
         </div>
         
         <button 
-          onClick={() => setWordIndex(i => Math.min(words.length - 1, i + 1))}
+          onClick={() => { soundManager.playMenuClick(); setWordIndex(i => Math.min(words.length - 1, i + 1)); }}
           disabled={wordIndex === words.length - 1 || words.length === 0 || isCalculating}
           style={{ background: 'var(--glass-bg)', border: '1px solid var(--glass-border)', borderRadius: '50%', width: '40px', height: '40px', color: 'var(--text-main)', fontSize: '20px', display: 'flex', justifyContent: 'center', alignItems: 'center', opacity: wordIndex === words.length - 1 ? 0.3 : 1 }}
         >
@@ -308,7 +318,7 @@ export default function Analysis({ initialBoard, initialWords, onExit, workerRef
       </div>
       
       <div style={{ padding: '10px', paddingBottom: 'calc(15px + env(safe-area-inset-bottom, 0px))' }}>
-        <button className="btn" style={{ backgroundColor: 'var(--glass-bg)', color: 'var(--text-main)', border: '1px solid var(--glass-border)' }} onClick={onExit}>
+        <button className="btn" style={{ backgroundColor: 'var(--glass-bg)', color: 'var(--text-main)', border: '1px solid var(--glass-border)' }} onClick={() => { soundManager.playMenuClick(); onExit(); }}>
           Вернуться к статистике
         </button>
       </div>
