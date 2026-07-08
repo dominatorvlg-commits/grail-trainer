@@ -174,12 +174,12 @@ export default function Analysis({ initialBoard, initialWords, onExit, workerRef
     
     const currentHint = words[wordIndex];
     if (selectedPath.length > 1 && currentHint && currentHint.path) {
-      const currentWordOnHintPath = currentHint.path.map(p => {
-        const cell = newBoard[p.r][p.c];
+      const currentWordStrSwiped = selectedPath.map(p => {
+        const cell = board[p.r][p.c];
         return cell.layers[cell.currentLayer];
       }).join('');
       
-      if (currentWordOnHintPath === currentHint.word) {
+      if (currentWordStrSwiped === currentHint.word) {
         soundManager.playSuccess(currentHint.points);
         if (wordIndex < words.length - 1) {
           setWordIndex(wordIndex + 1);
