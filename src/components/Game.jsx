@@ -36,8 +36,12 @@ export default function Game({ mode, difficulty, initialBoard, isInfiniteTime, i
   const [selectedPath, setSelectedPath] = useState([]); // [{r, c}]
   const boardRef = useRef(null);
   const boardRectRef = useRef(null);
-  
   const initialDragCell = useRef(null);
+  const countdownRef = useRef(countdown);
+
+  useEffect(() => {
+    countdownRef.current = countdown;
+  }, [countdown]);
 
   useEffect(() => {
     let finalBoard;
@@ -101,7 +105,7 @@ export default function Game({ mode, difficulty, initialBoard, isInfiniteTime, i
 
   const handlePointerDown = React.useCallback((e, r, c) => {
     if (e.isPrimary === false) return;
-    if (countdown > 0) return; // Блокируем игру во время отсчета
+    if (countdownRef.current > 0) return; // Блокируем игру во время отсчета
     e.preventDefault();
     setIsDragging(true);
     setSelectedPath([{ r, c }]);
@@ -113,10 +117,10 @@ export default function Game({ mode, difficulty, initialBoard, isInfiniteTime, i
     if (boardRef.current) {
       boardRectRef.current = boardRef.current.getBoundingClientRect();
     }
-  }, [countdown]);
+  }, []);
 
   const handlePointerMove = (e) => {
-    if (!isDragging || countdown > 0) return;
+    if (!isDragging || countdownRef.current > 0) return;
     if (e.isPrimary === false) return;
     if (!boardRectRef.current) return;
     
